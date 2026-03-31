@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phantom Wild — 幻野爬蟲專賣</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  // ★ 請將下面換成你自己的 Firebase 設定（從 Firebase Console 複製）
+  const firebaseConfig = {
+  apiKey: "AIzaSyDnUAP9JsVidvnJ3BZNwmtDWi9sm7j31iw",
+  authDomain: "pwweb-d2c64.firebaseapp.com",
+  projectId: "pwweb-d2c64",
+  storageBucket: "pwweb-d2c64.firebasestorage.app",
+  messagingSenderId: "950190636899",
+  appId: "1:950190636899:web:56ee9f6aaa81da49c05d56",
+  measurementId: "G-Z2H591MXFT"
+};
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.DB = db;
+  onSnapshot(query(collection(db,'pets'), orderBy('createdAt','desc')), snap => {
+    window.PETS_DB = snap.docs.map(d=>({id:d.id,...d.data()}));
+    window.renderPets(window._currentFilter||'all');
+  });
+  onSnapshot(query(collection(db,'supplies'), orderBy('createdAt','desc')), snap => {
+    window.SUPPLIES_DB = snap.docs.map(d=>({id:d.id,...d.data()}));
+    window.renderSupplies();
+  });
+</script>
+<style>
+:root {
+  --black:#0e0c08; --deep:#141208; --card:#1a1710;
+  --cream:#e8dcc8; --cream2:#c8b898;
+  --warm:#8a7355; --warm-dim:#5a4a30;
+  --warm-glow:rgba(138,115,85,.12);
+  --text:#b0a088; --text-dim:#5a4e38;
+  --white:#f5efe0;
+  --border:rgba(138,115,85,.15); --border-h:rgba(138,115,85,.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--cream);font-family:'Noto Serif TC',serif;font-weight:300;overflow-x:hidden;cursor:none}
+#cursor{width:10px;height:10px;background:var(--warm);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference;transition:width .2s,height .2s}
+#cursor-ring{width:32px;height:32px;border:1px solid rgba(138,115,85,.55);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all .12s ease;opacity:.55}
+body.hov #cursor{width:18px;height:18px}
+body.hov #cursor-ring{width:50px;height:50px;opacity:.22}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.28;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:22px 56px;display:flex;align-items:center;justify-content:space-between;transition:all .4s}
+nav.sc{background:rgba(14,12,8,.96);backdrop-filter:blur(14px);padding:16px 56px;border-bottom:1px solid var(--border)}
+.logo{font-family:'Cinzel Decorative',serif;font-size:.95rem;letter-spacing:.35em;color:var(--cream);text-decoration:none}
+.nav-links{display:flex;gap:36px;list-style:none}
+.nav-links a{font-family:'Cormorant Garamond',serif;font-size:.9rem;letter-spacing:.22em;color:var(--text);text-decoration:none;text-transform:uppercase;position:relative;padding-bottom:4px;transition:color .3s}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--warm);transform:scaleX(0);transform-origin:right;transition:transform .35s}
+.nav-links a:hover{color:var(--cream)}.nav-links a:hover::after{transform:scaleX(1);transform-origin:left}
+.nav-ig{font-family:'Cormorant Garamond',serif;font-size:.78rem;letter-spacing:.25em;text-transform:uppercase;color:var(--warm-dim);border:1px solid var(--warm-dim);padding:8px 20px;text-decoration:none;transition:all .3s}
+.nav-ig:hover{color:var(--warm);border-color:var(--warm);background:var(--warm-glow)}
+
+/* HERO */
+.hero{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 55%,rgba(138,115,85,.08),transparent 65%),linear-gradient(165deg,#141208,#0e0c08 45%,#100e06)}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(138,115,85,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(138,115,85,.025) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(ellipse 65% 65% at 50% 50%,black,transparent)}
+.hero-ring{position:absolute;width:680px;height:680px;border:1px solid rgba(138,115,85,.07);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);animation:spin 90s linear infinite}
+.hero-ring::before{content:'';position:absolute;inset:55px;border:1px solid rgba(138,115,85,.04);border-radius:50%}
+.hero-ring::after{content:'';position:absolute;inset:110px;border:1px solid rgba(138,115,85,.07);border-radius:50%}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.hero-content{position:relative;z-index:2;text-align:center;max-width:900px;padding:0 24px}
+.hero-logo{width:105px;height:105px;border-radius:50%;border:2px solid rgba(138,115,85,.35);margin:0 auto 28px;display:block;object-fit:cover;opacity:0;animation:up .9s .1s ease forwards}
+.hero-eye{font-family:'Cormorant Garamond',serif;font-size:.74rem;letter-spacing:.6em;color:var(--warm);text-transform:uppercase;margin-bottom:22px;display:flex;align-items:center;justify-content:center;gap:20px;opacity:0;animation:up .9s .25s ease forwards}
+.hero-eye::before,.hero-eye::after{content:'';display:block;width:50px;height:1px;background:var(--warm-dim)}
+.hero-title{font-family:'Cinzel Decorative',serif;font-size:clamp(2.8rem,7.5vw,6.5rem);font-weight:900;line-height:.95;letter-spacing:.04em;color:var(--white);opacity:0;animation:up .9s .35s ease forwards}
+.hero-title .acc{display:block;background:linear-gradient(135deg,var(--cream),var(--warm),#6a5535,var(--warm));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:sh 5s 1.5s ease-in-out infinite}
+@keyframes sh{0%,100%{background-position:0%}50%{background-position:100%}}
+.hero-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(.95rem,1.8vw,1.3rem);color:var(--text);letter-spacing:.18em;margin:22px 0 50px;opacity:0;animation:up .9s .5s ease forwards}
+.hero-cta{display:inline-flex;gap:18px;opacity:0;animation:up .9s .65s ease forwards}
+@keyframes up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.btn-p{font-family:'Cormorant Garamond',serif;font-size:.9rem;letter-spacing:.3em;text-transform:uppercase;color:#12100a;background:linear-gradient(135deg,var(--cream),var(--warm));padding:14px 38px;text-decoration:none;transition:all .3s;display:inline-block}
+.btn-p:hover{transform:translateY(-3px);box-shadow:0 10px 40px rgba(138,115,85,.3)}
+.btn-o{font-family:'Cormorant Garamond',serif;font-size:.9rem;letter-spacing:.3em;text-transform:uppercase;color:var(--cream2);border:1px solid var(--warm-dim);padding:14px 38px;text-decoration:none;transition:all .3s;display:inline-block}
+.btn-o:hover{border-color:var(--warm);background:var(--warm-glow);transform:translateY(-3px)}
+.scroll-hint{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:up .9s 1s ease forwards}
+.scroll-hint span{font-family:'Cormorant Garamond',serif;font-size:.68rem;letter-spacing:.45em;color:var(--text-dim);text-transform:uppercase}
+.s-line{width:1px;height:48px;background:linear-gradient(to bottom,var(--warm-dim),transparent);animation:pu 2s ease-in-out infinite}
+@keyframes pu{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* SECTION */
+section{padding:130px 56px}
+.sh{text-align:center;margin-bottom:80px}
+.sl{font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.5em;color:var(--warm);text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:18px}
+.sl::before,.sl::after{content:'';display:block;width:44px;height:1px;background:var(--warm-dim)}
+.st{font-family:'Cinzel Decorative',serif;font-size:clamp(1.6rem,3.5vw,2.6rem);color:var(--white);letter-spacing:.05em}
+.st em{font-style:normal;color:var(--warm)}
+
+/* CATS */
+.cats{background:var(--deep);padding:100px 0}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;max-width:1400px;margin:0 auto}
+.cc{position:relative;overflow:hidden;aspect-ratio:3/4;background:#131108;text-decoration:none;display:flex;align-items:flex-end}
+.cc::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92),rgba(0,0,0,.3) 55%,transparent);z-index:1;transition:opacity .4s}
+.cc:hover::before{opacity:.7}
+.cc-em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7rem;filter:saturate(.4) brightness(.45);transition:transform .6s,filter .4s}
+.cc:hover .cc-em{transform:scale(1.08);filter:saturate(.6) brightness(.55)}
+.cc-body{position:relative;z-index:2;padding:28px 26px;transition:transform .4s}
+.cc:hover .cc-body{transform:translateY(-8px)}
+.cc-name{font-family:'Cinzel Decorative',serif;font-size:.82rem;color:var(--white);letter-spacing:.1em;margin-bottom:6px}
+.cc-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.9rem;color:var(--warm)}
+.cc-bar{position:absolute;bottom:0;left:0;width:0;height:2px;background:linear-gradient(to right,var(--warm),transparent);transition:width .45s;z-index:3}
+.cc:hover .cc-bar{width:100%}
+
+/* PETS */
+.pets{background:var(--black)}
+.fb{display:flex;gap:10px;justify-content:center;margin-bottom:56px;flex-wrap:wrap}
+.fb-btn{font-family:'Cormorant Garamond',serif;font-size:.82rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim);border:1px solid rgba(138,115,85,.15);padding:9px 26px;background:none;cursor:none;transition:all .3s}
+.fb-btn.a,.fb-btn:hover{color:var(--warm);border-color:var(--warm);background:var(--warm-glow)}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px;max-width:1380px;margin:0 auto}
+.lm{text-align:center;width:100%;padding:60px 0;font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-dim);font-size:1rem;grid-column:1/-1}
+
+/* PET CARD */
+.pc{background:var(--card);border:1px solid var(--border);overflow:hidden;transition:all .4s;cursor:none}
+.pc:hover{border-color:var(--border-h);transform:translateY(-7px);box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 30px rgba(138,115,85,.06)}
+.pi{position:relative;aspect-ratio:4/3;background:#131108;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pi img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.pc:hover .pi img{transform:scale(1.06)}
+.pe{font-size:5rem;filter:saturate(.4) brightness(.55);transition:transform .5s}
+.pc:hover .pe{transform:scale(1.1)}
+.pi::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,var(--card),transparent 50%);pointer-events:none}
+.pb-badge{position:absolute;top:14px;left:14px;z-index:2;font-family:'Cormorant Garamond',serif;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#12100a;background:var(--warm);padding:4px 10px}
+.pb{padding:18px 22px 22px}
+.p-sp{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.78rem;color:var(--warm-dim);letter-spacing:.1em;margin-bottom:5px}
+.p-nm{font-family:'Cinzel Decorative',serif;font-size:.92rem;color:var(--white);letter-spacing:.05em;margin-bottom:10px}
+.p-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.p-tag{font-size:.68rem;letter-spacing:.1em;color:var(--text-dim);border:1px solid rgba(138,115,85,.12);padding:3px 8px}
+.p-foot{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border)}
+.p-pr{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;color:var(--warm)}
+.cur{font-size:.7rem;margin-right:2px;opacity:.8}
+.p-btn{font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:#12100a;background:var(--warm);padding:8px 16px;border:none;cursor:none;transition:all .3s}
+.p-btn:hover{background:var(--cream);transform:scale(1.04)}
+
+/* SUPPLIES */
+.supp{background:var(--deep)}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;max-width:1380px;margin:0 auto}
+.sc-card{background:var(--card);border:1px solid var(--border);padding:28px 24px;display:flex;flex-direction:column;gap:14px;transition:all .35s;cursor:none}
+.sc-card:hover{border-color:var(--border-h);transform:translateY(-5px);box-shadow:0 16px 45px rgba(0,0,0,.5)}
+.s-ic{font-size:2.6rem;filter:saturate(.5) brightness(.6)}
+.s-cat{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.75rem;color:var(--warm-dim);letter-spacing:.15em}
+.s-nm{font-family:'Cinzel Decorative',serif;font-size:.8rem;color:var(--white);letter-spacing:.05em;line-height:1.4}
+.s-desc{font-family:'Cormorant Garamond',serif;font-size:.88rem;color:var(--text-dim);line-height:1.6}
+.s-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px;border-top:1px solid var(--border)}
+.s-pr{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:600;color:var(--warm)}
+.cb-btn{font-family:'Cormorant Garamond',serif;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--warm);border:1px solid var(--warm-dim);padding:7px 14px;background:none;cursor:none;transition:all .3s}
+.cb-btn:hover{background:var(--warm-glow);border-color:var(--warm)}
+
+/* CART FAB */
+.cfab{position:fixed;bottom:40px;right:40px;z-index:490;background:linear-gradient(135deg,var(--cream2),var(--warm));color:#12100a;border:none;width:56px;height:56px;border-radius:50%;font-size:1.3rem;cursor:none;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(138,115,85,.3);transition:all .3s}
+.cfab:hover{transform:scale(1.1);box-shadow:0 12px 40px rgba(138,115,85,.45)}
+.cfab-c{position:absolute;top:-4px;right:-4px;background:#8b3a3a;color:#fff;font-size:.65rem;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif}
+
+/* CART */
+.c-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;opacity:0;pointer-events:none;transition:opacity .35s}
+.c-ov.open{opacity:1;pointer-events:all}
+.c-sb{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:100vw;background:var(--deep);border-left:1px solid var(--border);z-index:601;transform:translateX(100%);transition:transform .4s;display:flex;flex-direction:column}
+.c-sb.open{transform:translateX(0)}
+.c-hd{padding:32px 32px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.c-hd h3{font-family:'Cinzel Decorative',serif;font-size:1rem;color:var(--white);letter-spacing:.1em}
+.c-cl{background:none;border:none;color:var(--text-dim);font-size:1.4rem;cursor:none;transition:color .3s}
+.c-cl:hover{color:var(--warm)}
+.c-its{flex:1;overflow-y:auto;padding:24px 32px}
+.c-emp{text-align:center;padding:60px 0;font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-dim)}
+.c-it{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);align-items:center}
+.c-it-ic{font-size:2rem;filter:saturate(.5)}
+.c-it-inf{flex:1}
+.c-it-nm{font-family:'Cormorant Garamond',serif;font-size:.9rem;color:var(--white);margin-bottom:4px}
+.c-it-pr{font-family:'Cormorant Garamond',serif;font-size:.82rem;color:var(--warm)}
+.c-it-rm{background:none;border:none;color:var(--text-dim);cursor:none;font-size:1rem;transition:color .3s}
+.c-it-rm:hover{color:#c0392b}
+.c-ft{padding:24px 32px;border-top:1px solid var(--border)}
+.c-tot{display:flex;justify-content:space-between;margin-bottom:20px}
+.c-tot span{font-family:'Cormorant Garamond',serif;color:var(--text);font-size:.9rem;letter-spacing:.1em}
+.c-tot strong{font-family:'Cormorant Garamond',serif;color:var(--warm);font-size:1.2rem}
+.ck-btn{width:100%;padding:16px;font-family:'Cormorant Garamond',serif;font-size:.88rem;letter-spacing:.3em;text-transform:uppercase;color:#12100a;background:linear-gradient(135deg,var(--cream2),var(--warm));border:none;cursor:none;transition:all .3s}
+.ck-btn:hover{box-shadow:0 6px 30px rgba(138,115,85,.3);transform:translateY(-2px)}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:center;justify-content:center;padding:24px}
+.mo.open{opacity:1;pointer-events:all}
+.m-box{background:var(--deep);border:1px solid var(--border);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:48px;position:relative;transform:translateY(20px);transition:transform .35s}
+.mo.open .m-box{transform:translateY(0)}
+.m-cl{position:absolute;top:20px;right:24px;background:none;border:none;color:var(--text-dim);font-size:1.4rem;cursor:none;transition:color .3s}
+.m-cl:hover{color:var(--warm)}
+.m-lbl{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.78rem;color:var(--warm-dim);letter-spacing:.15em;margin-bottom:8px}
+.m-ttl{font-family:'Cinzel Decorative',serif;font-size:1.2rem;color:var(--white);letter-spacing:.05em;margin-bottom:32px;line-height:1.4}
+.fg{margin-bottom:22px}
+.fg label{display:block;font-family:'Cormorant Garamond',serif;font-size:.8rem;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px}
+.fg input,.fg textarea,.fg select{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--cream);font-family:'Noto Serif TC',serif;font-size:.9rem;font-weight:300;padding:12px 16px;outline:none;transition:border-color .3s}
+.fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--warm)}
+.fg textarea{resize:vertical;min-height:100px}
+option{background:var(--deep)}
+.f-note{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:var(--text-dim);margin-bottom:28px}
+.sub-btn{width:100%;padding:16px;font-family:'Cormorant Garamond',serif;font-size:.88rem;letter-spacing:.3em;text-transform:uppercase;color:#12100a;background:linear-gradient(135deg,var(--cream2),var(--warm));border:none;cursor:none;transition:all .3s}
+.sub-btn:hover{box-shadow:0 6px 30px rgba(138,115,85,.3)}
+.ck-note{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-dim);font-size:.9rem;margin-bottom:24px;line-height:1.6}
+.ck-prev{background:rgba(138,115,85,.04);border:1px solid var(--border);padding:16px;margin-bottom:24px}
+.ck-row{display:flex;justify-content:space-between;font-family:'Cormorant Garamond',serif;font-size:.88rem;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border)}
+.ck-row:last-child{border-bottom:none}
+.ig-btn{display:block;width:100%;padding:15px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:.88rem;letter-spacing:.25em;text-transform:uppercase;color:var(--warm);border:1px solid var(--warm-dim);text-decoration:none;transition:all .3s}
+.ig-btn:hover{background:var(--warm-glow);border-color:var(--warm)}
+
+/* ABOUT */
+.about{background:var(--black)}
+.ab-in{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.ab-frame{aspect-ratio:3/4;background:#131108;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9rem;filter:saturate(.35) brightness(.45);position:relative;overflow:hidden}
+.ab-frame::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(138,115,85,.05),transparent 60%)}
+.ab-acc{position:absolute;bottom:-20px;right:-20px;width:120px;height:120px;border:1px solid var(--warm-dim);z-index:-1}
+.ab-vis{position:relative}
+.ab-txt .sh{text-align:left;margin-bottom:36px}
+.ab-txt .sh .sl{justify-content:flex-start}
+.ab-txt .sh .sl::before{display:none}
+.ab-body{font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--text);line-height:1.85;margin-bottom:28px}
+.ab-body p+p{margin-top:18px}
+.ab-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px;padding-top:40px;border-top:1px solid var(--border)}
+.stat{text-align:center}
+.s-num{font-family:'Cinzel Decorative',serif;font-size:1.8rem;color:var(--warm);display:block;margin-bottom:6px}
+.s-lbl{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:var(--text-dim)}
+
+/* CONTACT */
+.contact{background:var(--deep)}
+.ct-in{max-width:900px;margin:0 auto}
+.ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:60px}
+.ct-item{display:flex;gap:18px;align-items:flex-start;margin-bottom:28px}
+.ct-ic{font-size:1.5rem;margin-top:2px}
+.ct-lbl{font-family:'Cormorant Garamond',serif;font-size:.72rem;letter-spacing:.3em;text-transform:uppercase;color:var(--warm-dim);margin-bottom:6px}
+.ct-val{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--cream)}
+.ct-val a{color:var(--warm);text-decoration:none;transition:opacity .3s}
+.ct-val a:hover{opacity:.75}
+
+/* FOOTER */
+footer{background:var(--black);border-top:1px solid var(--border);padding:50px 56px;display:flex;align-items:center;justify-content:space-between}
+.f-logo{font-family:'Cinzel Decorative',serif;font-size:.9rem;letter-spacing:.35em;color:var(--warm)}
+.f-copy{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.8rem;color:var(--text-dim)}
+.f-ig{font-family:'Cormorant Garamond',serif;font-size:.82rem;letter-spacing:.2em;color:var(--text-dim);text-decoration:none;transition:color .3s}
+.f-ig:hover{color:var(--warm)}
+
+/* SUCCESS */
+.suc{text-align:center;padding:40px 0}
+.suc .ck{font-size:3rem;margin-bottom:16px}
+.suc h4{font-family:'Cinzel Decorative',serif;font-size:1.1rem;color:var(--warm);margin-bottom:12px}
+.suc p{font-family:'Cormorant Garamond',serif;color:var(--text);line-height:1.6}
+
+@media(max-width:900px){
+  nav{padding:18px 24px}nav.sc{padding:14px 24px}
+  .nav-links{display:none}
+  section{padding:90px 24px}
+  .cat-grid{grid-template-columns:repeat(2,1fr)}
+  .ab-in{grid-template-columns:1fr}
+  .ct-grid{grid-template-columns:1fr}
+  footer{flex-direction:column;gap:16px;text-align:center}
+  .c-sb{width:100vw}
+  .hero-cta{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+<div id="cursor"></div><div id="cursor-ring"></div>
+
+<button class="cfab" onclick="openCart()">🛒<span class="cfab-c" id="cCount">0</span></button>
+
+<nav id="nav">
+  <a href="#" class="logo">PHANTOM WILD</a>
+  <ul class="nav-links">
+    <li><a href="#pets">寵物</a></li><li><a href="#supp">用品</a></li>
+    <li><a href="#about">關於我們</a></li><li><a href="#contact">聯絡</a></li>
+  </ul>
+  <a href="https://www.instagram.com/phantom_wild/" target="_blank" class="nav-ig">IG @phantom_wild</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div><div class="hero-grid"></div><div class="hero-ring"></div>
+  <div class="hero-content">
+    <img src="IMG_1478.png" alt="Phantom Wild Logo" class="hero-logo">
+    <div class="hero-eye">台灣頂級爬蟲專賣</div>
+    <h1 class="hero-title">PHANTOM<span class="acc">WILD</span></h1>
+    <p class="hero-sub">幻野之境 — 守宮 · 蛇類 · 兩棲 · 專業用品</p>
+    <div class="hero-cta">
+      <a href="#pets" class="btn-p">探索寵物</a>
+      <a href="#supp" class="btn-o">瀏覽用品</a>
+    </div>
+  </div>
+  <div class="scroll-hint"><span>向下探索</span><div class="s-line"></div></div>
+</section>
+
+<!-- CATEGORIES -->
+<section class="cats" id="cats">
+  <div class="sh"><div class="sl">我們的品項</div><h2 class="st">探索<em>幻野世界</em></h2></div>
+  <div class="cat-grid">
+    <a href="#pets" class="cc" onclick="filterPets('gecko',null)"><div class="cc-em">🦎</div><div class="cc-body"><div class="cc-name">GECKO & LIZARD</div><div class="cc-sub">守宮 · 蜥蜴</div></div><div class="cc-bar"></div></a>
+    <a href="#pets" class="cc" onclick="filterPets('snake',null)"><div class="cc-em">🐍</div><div class="cc-body"><div class="cc-name">SERPENT</div><div class="cc-sub">蛇類</div></div><div class="cc-bar"></div></a>
+    <a href="#pets" class="cc" onclick="filterPets('frog',null)"><div class="cc-em">🐸</div><div class="cc-body"><div class="cc-name">AMPHIBIAN</div><div class="cc-sub">青蛙 · 兩棲</div></div><div class="cc-bar"></div></a>
+    <a href="#supp" class="cc"><div class="cc-em">🌿</div><div class="cc-body"><div class="cc-name">SUPPLIES</div><div class="cc-sub">用品 · 營養品</div></div><div class="cc-bar"></div></a>
+  </div>
+</section>
+
+<!-- PETS -->
+<section class="pets" id="pets">
+  <div class="sh"><div class="sl">現貨寵物</div><h2 class="st">尋找你的<em>幻野夥伴</em></h2></div>
+  <div class="fb">
+    <button class="fb-btn a" onclick="filterPets('all',this)">全部</button>
+    <button class="fb-btn" onclick="filterPets('gecko',this)">守宮 · 蜥蜴</button>
+    <button class="fb-btn" onclick="filterPets('snake',this)">蛇類</button>
+    <button class="fb-btn" onclick="filterPets('frog',this)">青蛙 · 兩棲</button>
+  </div>
+  <div class="pg" id="petsGrid"><div class="lm">載入中…</div></div>
+</section>
+
+<!-- SUPPLIES -->
+<section class="supp" id="supp">
+  <div class="sh"><div class="sl">專業用品</div><h2 class="st">頂級<em>飼育裝備</em></h2></div>
+  <div class="sg" id="suppGrid"><div class="lm" style="grid-column:1/-1">載入中…</div></div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="ab-in">
+    <div class="ab-vis"><div class="ab-frame">🦎</div><div class="ab-acc"></div></div>
+    <div class="ab-txt">
+      <div class="sh"><div class="sl">關於幻野</div><h2 class="st">用熱情<em>養育生命</em></h2></div>
+      <div class="ab-body">
+        <p>Phantom Wild 幻野爬蟲專賣，是一間專注於優質爬蟲與兩棲動物的網路商店。我們的每一隻個體都經過嚴格健康把關，確保你得到的是狀況最好的夥伴。</p>
+        <p>從守宮到蛇類，從青蛙到蜥蜴，我們提供完整的飼育建議與售後支援，讓新手也能安心踏入爬蟲的世界。</p>
+        <p>購買前有任何問題，歡迎透過 Instagram 私訊聯絡，我們會盡快為你解答。</p>
+      </div>
+      <div class="ab-stats">
+        <div class="stat"><span class="s-num">100%</span><span class="s-lbl">健康把關</span></div>
+        <div class="stat"><span class="s-num">專業</span><span class="s-lbl">售後支援</span></div>
+        <div class="stat"><span class="s-num">即時</span><span class="s-lbl">庫存更新</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="ct-in">
+    <div class="sh"><div class="sl">聯絡我們</div><h2 class="st">有任何<em>問題都歡迎</em></h2></div>
+    <div class="ct-grid">
+      <div>
+        <div class="ct-item"><div class="ct-ic">📸</div><div><div class="ct-lbl">Instagram</div><div class="ct-val"><a href="https://www.instagram.com/phantom_wild/" target="_blank">@phantom_wild</a></div></div></div>
+        <div class="ct-item"><div class="ct-ic">⏰</div><div><div class="ct-lbl">回覆時間</div><div class="ct-val">每日 10:00 — 22:00</div></div></div>
+        <div class="ct-item"><div class="ct-ic">📦</div><div><div class="ct-lbl">出貨方式</div><div class="ct-val">配合面交 / 宅配</div></div></div>
+        <div class="ct-item"><div class="ct-ic">💳</div><div><div class="ct-lbl">付款方式</div><div class="ct-val">面交現金 · 轉帳</div></div></div>
+      </div>
+      <div>
+        <form onsubmit="submitContact(event)" id="ctForm">
+          <div class="fg"><label>您的名稱</label><input type="text" placeholder="請輸入姓名" required></div>
+          <div class="fg"><label>聯絡方式</label><input type="text" placeholder="IG 帳號 / 手機號碼" required></div>
+          <div class="fg"><label>詢問內容</label><textarea placeholder="請描述您想詢問的內容..." required></textarea></div>
+          <button type="submit" class="sub-btn">送出詢問</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="f-logo">PHANTOM WILD</div>
+  <div class="f-copy">© 2025 Phantom Wild · 幻野爬蟲專賣</div>
+  <a href="https://www.instagram.com/phantom_wild/" target="_blank" class="f-ig">@phantom_wild</a>
+</footer>
+
+<!-- PET MODAL -->
+<div class="mo" id="petMo" onclick="closePetMo(event)">
+  <div class="m-box" id="petMoBox">
+    <button class="m-cl" onclick="closePetMo()">✕</button>
+    <div class="m-lbl">寵物詢價</div>
+    <h3 class="m-ttl" id="moName">—</h3>
+    <form onsubmit="submitPet(event)">
+      <div class="fg"><label>您的姓名</label><input type="text" placeholder="請輸入姓名" required></div>
+      <div class="fg"><label>IG 帳號 / 聯絡方式</label><input type="text" placeholder="@您的IG 或 手機號碼" required></div>
+      <div class="fg"><label>想了解的資訊</label>
+        <select><option>詢問個體狀況</option><option>詢問價格</option><option>預約看個體</option><option>其他</option></select>
+      </div>
+      <div class="fg"><label>補充說明（選填）</label><textarea placeholder="有任何問題都可以在這裡說明..."></textarea></div>
+      <p class="f-note">送出後我們會在 24 小時內透過 IG 與您聯絡 🐍</p>
+      <button type="submit" class="sub-btn">送出詢問</button>
+    </form>
+  </div>
+</div>
+
+<!-- CART -->
+<div class="c-ov" id="cOv" onclick="closeCart()"></div>
+<div class="c-sb" id="cSb">
+  <div class="c-hd"><h3>購物車</h3><button class="c-cl" onclick="closeCart()">✕</button></div>
+  <div class="c-its" id="cIts"><div class="c-emp">購物車是空的</div></div>
+  <div class="c-ft">
+    <div class="c-tot"><span>合計</span><strong id="cTot">NT$ 0</strong></div>
+    <button class="ck-btn" onclick="openCheckout()">前往結帳</button>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="mo" id="ckMo" onclick="closeCkMo(event)">
+  <div class="m-box">
+    <button class="m-cl" onclick="closeCkMo()">✕</button>
+    <div class="m-lbl">結帳</div>
+    <h3 class="m-ttl">確認訂單</h3>
+    <p class="ck-note">請確認以下商品後，點擊按鈕前往 Instagram 完成下單。</p>
+    <div class="ck-prev" id="ckPrev"></div>
+    <div class="c-tot" style="margin-bottom:28px"><span>訂單合計</span><strong id="ckTot">NT$ 0</strong></div>
+    <a href="https://www.instagram.com/phantom_wild/" target="_blank" class="ig-btn">📸 前往 Instagram 聯絡下單</a>
+  </div>
+</div>
+
+<script>
+// Cursor
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar)})();
+function h(el){el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'))}
+document.querySelectorAll('a,button,.cc,.fb-btn').forEach(h);
+
+// Nav
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('sc',scrollY>60));
+
+// Fallback data
+window.PETS_DB=[
+  {id:'p1',name:'Lemon Frost',species:'豹紋守宮',cat:'gecko',emoji:'🦎',price:3800,tags:['CB個體','雌性','已開食'],badge:'精選',imageUrl:''},
+  {id:'p2',name:'Super Snow',species:'豹紋守宮',cat:'gecko',emoji:'🦎',price:4500,tags:['CB個體','雄性'],badge:'推薦',imageUrl:''},
+  {id:'p3',name:'Albino Corn',species:'玉米蛇',cat:'snake',emoji:'🐍',price:3200,tags:['CB個體','雄性','已開食'],badge:'精選',imageUrl:''},
+  {id:'p4',name:'Blue Eyed Lucy',species:'球蟒',cat:'snake',emoji:'🐍',price:12000,tags:['CB個體','雌性'],badge:'稀有',imageUrl:''},
+  {id:'p5',name:'ANBW',species:'亞馬遜牛奶蛙',cat:'frog',emoji:'🐸',price:1800,tags:['CB個體'],badge:'推薦',imageUrl:''},
+];
+window.SUPPLIES_DB=[
+  {id:'s1',name:'UVB 5.0 爬蟲燈管',cat:'照明',icon:'💡',desc:'適合守宮、蜥蜴，促進維他命D3合成',price:680},
+  {id:'s2',name:'椰土底材 10L',cat:'底材',icon:'🌿',desc:'天然椰土，適合兩棲與濕地型爬蟲',price:280},
+  {id:'s3',name:'Repashy 昆蟲膏',cat:'飼料',icon:'🥣',desc:'豹紋守宮專用果泥，完整營養配方',price:380},
+  {id:'s4',name:'爬蟲控溫加熱墊',cat:'溫控',icon:'🌡️',desc:'恆溫控制，安全可靠',price:520},
+  {id:'s5',name:'Arcadia Calcium D3',cat:'營養品',icon:'💊',desc:'含D3鈣粉，預防代謝性骨病',price:320},
+  {id:'s6',name:'玻璃爬蟲缸 30x30x45',cat:'飼育箱',icon:'🏠',desc:'前開式玻璃缸，適合守宮及樹棲個體',price:1980},
+];
+window._currentFilter='all';
+
+// Render Pets
+window.renderPets=function(f){
+  window._currentFilter=f;
+  const g=document.getElementById('petsGrid');
+  const d=f==='all'?window.PETS_DB:window.PETS_DB.filter(p=>p.cat===f);
+  if(!d||!d.length){g.innerHTML='<div class="lm">目前沒有此分類的個體，敬請期待！</div>';return}
+  g.innerHTML=d.map(p=>`
+    <div class="pc">
+      <div class="pi">
+        ${p.imageUrl?`<img src="${p.imageUrl}" alt="${p.name}" loading="lazy">`:`<div class="pe">${p.emoji||'🦎'}</div>`}
+        ${p.badge?`<div class="pb-badge">${p.badge}</div>`:''}
+      </div>
+      <div class="pb">
+        <div class="p-sp">${p.species||''}</div>
+        <div class="p-nm">${p.name}</div>
+        <div class="p-tags">${(p.tags||[]).map(t=>`<span class="p-tag">${t}</span>`).join('')}</div>
+        <div class="p-foot">
+          <div class="p-pr"><span class="cur">NT$</span>${Number(p.price).toLocaleString()}</div>
+          <button class="p-btn" onclick="openPetMo('${p.name.replace(/'/g,"\\'")}','${(p.species||'').replace(/'/g,"\\'")}')">詢問個體</button>
+        </div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.pc,.p-btn').forEach(h);
+}
+
+// Render Supplies
+window.renderSupplies=function(){
+  const g=document.getElementById('suppGrid');
+  const d=window.SUPPLIES_DB;
+  if(!d||!d.length){g.innerHTML='<div class="lm" style="grid-column:1/-1">目前沒有用品資料</div>';return}
+  g.innerHTML=d.map(s=>`
+    <div class="sc-card">
+      <div class="s-ic">${s.icon||'📦'}</div>
+      <div class="s-cat">${s.cat||''}</div>
+      <div class="s-nm">${s.name}</div>
+      <div class="s-desc">${s.desc||''}</div>
+      <div class="s-foot">
+        <div class="s-pr">NT$ ${Number(s.price).toLocaleString()}</div>
+        <button class="cb-btn" onclick="addToCart('${s.id}')">加入購物車</button>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('.sc-card,.cb-btn').forEach(h);
+}
+
+// Filter
+window.filterPets=function(f,btn){
+  document.querySelectorAll('.fb-btn').forEach(b=>b.classList.remove('a'));
+  if(btn)btn.classList.add('a');
+  renderPets(f);
+}
+
+// Cart
+let cart=[];
+window.addToCart=function(id){
+  const item=window.SUPPLIES_DB.find(s=>s.id===id);if(!item)return;
+  const ex=cart.find(c=>c.id===id);
+  if(ex)ex.qty++;else cart.push({...item,qty:1});
+  updateCart();openCart();
+}
+function removeFromCart(id){cart=cart.filter(c=>c.id!==id);updateCart()}
+function updateCart(){
+  const count=cart.reduce((a,c)=>a+c.qty,0);
+  const total=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  document.getElementById('cCount').textContent=count;
+  document.getElementById('cTot').textContent=`NT$ ${total.toLocaleString()}`;
+  const el=document.getElementById('cIts');
+  if(!cart.length){el.innerHTML='<div class="c-emp">購物車是空的</div>';return}
+  el.innerHTML=cart.map(c=>`
+    <div class="c-it">
+      <div class="c-it-ic">${c.icon||'📦'}</div>
+      <div class="c-it-inf">
+        <div class="c-it-nm">${c.name} ×${c.qty}</div>
+        <div class="c-it-pr">NT$ ${(c.price*c.qty).toLocaleString()}</div>
+      </div>
+      <button class="c-it-rm" onclick="removeFromCart('${c.id}')">✕</button>
+    </div>`).join('');
+}
+function openCart(){document.getElementById('cOv').classList.add('open');document.getElementById('cSb').classList.add('open')}
+function closeCart(){document.getElementById('cOv').classList.remove('open');document.getElementById('cSb').classList.remove('open')}
+function openCheckout(){
+  closeCart();
+  const total=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  document.getElementById('ckTot').textContent=`NT$ ${total.toLocaleString()}`;
+  document.getElementById('ckPrev').innerHTML=cart.map(c=>`<div class="ck-row"><span>${c.name} ×${c.qty}</span><span>NT$ ${(c.price*c.qty).toLocaleString()}</span></div>`).join('');
+  document.getElementById('ckMo').classList.add('open');
+}
+function closeCkMo(e){if(!e||e.target===document.getElementById('ckMo'))document.getElementById('ckMo').classList.remove('open')}
+
+// Pet Modal
+function openPetMo(name,sp){
+  document.getElementById('moName').textContent=name+(sp?' — '+sp:'');
+  document.getElementById('petMo').classList.add('open');
+}
+function closePetMo(e){if(!e||e.target===document.getElementById('petMo'))document.getElementById('petMo').classList.remove('open')}
+function submitPet(e){
+  e.preventDefault();
+  document.getElementById('petMoBox').innerHTML=`<div class="suc"><div class="ck">✅</div><h4>詢問已送出！</h4><p>我們會在 24 小時內透過 IG 與您聯絡<br><br><a href="https://www.instagram.com/phantom_wild/" target="_blank" style="color:var(--warm)">@phantom_wild</a></p></div>`;
+  setTimeout(()=>document.getElementById('petMo').classList.remove('open'),3500);
+}
+function submitContact(e){
+  e.preventDefault();
+  document.getElementById('ctForm').innerHTML=`<div class="suc"><div class="ck">✅</div><h4>訊息已送出！</h4><p>感謝您的詢問，我們會盡快回覆！</p></div>`;
+}
+
+renderPets('all');
+renderSupplies();
+</script>
+</body>
+</html>
