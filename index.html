@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   // ★ 請將下面換成你自己的 Firebase 設定（從 Firebase Console 複製）
   const firebaseConfig = {
   apiKey: "AIzaSyDnUAP9JsVidvnJ3BZNwmtDWi9sm7j31iw",
@@ -22,19 +22,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   window.DB = db;
-  // Load hero banner
-  (async ()=>{
-    try{
-      const heroSnap = await getDoc(doc(db,'settings','hero'));
-      if(heroSnap.exists()){
-        const hd = heroSnap.data();
-        if(hd.imageUrl){
-          const heroBg = document.querySelector('.hero-bg');
-          if(heroBg) heroBg.style.cssText += `;background-image:url('${hd.imageUrl}'),radial-gradient(ellipse 60% 70% at 50% 55%,rgba(0,0,0,.55),rgba(0,0,0,.3)),linear-gradient(165deg,#141208,#0e0c08 45%,#100e06);background-size:cover,auto,auto;background-position:center,center,center`;
-        }
-      }
-    }catch(e){}
-  })();
   onSnapshot(query(collection(db,'pets'), orderBy('createdAt','desc')), snap => {
     window.PETS_DB = snap.docs.map(d=>({id:d.id,...d.data()}));
     window.renderPets(window._currentFilter||'all');
@@ -43,7 +30,6 @@
     window.SUPPLIES_DB = snap.docs.map(d=>({id:d.id,...d.data()}));
     window.renderSupplies();
   });
-
 </script>
 <style>
 :root {
@@ -428,40 +414,7 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
   </div>
 </div>
 
-<!-- PET DETAIL MODAL -->
-<div class="mo" id="petDetailMo" onclick="closePetDetail(event)">
-  <div class="m-box" id="petDetailBox" style="max-width:600px">
-    <button class="m-cl" onclick="closePetDetail()">✕</button>
-    <div id="petDetailContent"></div>
-  </div>
-</div>
-
 <script>
-// Pet detail
-function openPetDetail(id){
-  const p = (window.PETS_DB||[]).find(x=>x.id===id);
-  if(!p) return;
-  document.getElementById('petDetailContent').innerHTML = `
-    <div class="m-lbl">${p.species||''}</div>
-    <h3 class="m-ttl">${p.name}</h3>
-    ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:100%;max-height:300px;object-fit:cover;border:1px solid var(--border);margin-bottom:20px">` : `<div style="font-size:5rem;text-align:center;padding:20px;filter:saturate(.5) brightness(.6)">${p.emoji||'🦎'}</div>`}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
-      ${(p.tags||[]).map(t=>`<span class="p-tag">${t}</span>`).join('')}
-      ${p.badge ? `<span class="pb-badge" style="position:static">${p.badge}</span>` : ''}
-    </div>
-    ${p.note ? `<div style="font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--text);line-height:1.8;margin-bottom:20px;padding:14px;border-left:2px solid var(--warm-dim)">${p.note}</div>` : ''}
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border)">
-      <div class="p-pr" style="font-size:1.4rem"><span class="cur">NT$</span>${Number(p.price).toLocaleString()}</div>
-      <button class="p-btn" style="padding:12px 24px;font-size:.82rem" onclick="openPetMo('${p.name.replace(/'/g,"\'")}','${(p.species||'').replace(/'/g,"\'")}')">詢問個體</button>
-    </div>
-  `;
-  document.getElementById('petDetailMo').classList.add('open');
-}
-function closePetDetail(e){
-  if(!e||e.target===document.getElementById('petDetailMo'))
-    document.getElementById('petDetailMo').classList.remove('open');
-}
-
 // Cursor
 const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
 let mx=0,my=0,rx=0,ry=0;
@@ -498,7 +451,7 @@ window.renderPets=function(f){
   const d=f==='all'?window.PETS_DB:window.PETS_DB.filter(p=>p.cat===f);
   if(!d||!d.length){g.innerHTML='<div class="lm">目前沒有此分類的個體，敬請期待！</div>';return}
   g.innerHTML=d.map(p=>`
-    <div class="pc" onclick="openPetDetail('${p.id}')">
+    <div class="pc">
       <div class="pi">
         ${p.imageUrl?`<img src="${p.imageUrl}" alt="${p.name}" loading="lazy">`:`<div class="pe">${p.emoji||'🦎'}</div>`}
         ${p.badge?`<div class="pb-badge">${p.badge}</div>`:''}
@@ -509,7 +462,7 @@ window.renderPets=function(f){
         <div class="p-tags">${(p.tags||[]).map(t=>`<span class="p-tag">${t}</span>`).join('')}</div>
         <div class="p-foot">
           <div class="p-pr"><span class="cur">NT$</span>${Number(p.price).toLocaleString()}</div>
-          <button class="p-btn" onclick="event.stopPropagation();openPetMo('${p.name.replace(/'/g,"\'")}','${(p.species||'').replace(/'/g,"\'")}')">詢問個體</button>
+          <button class="p-btn" onclick="openPetMo('${p.name.replace(/'/g,"\\'")}','${(p.species||'').replace(/'/g,"\\'")}')">詢問個體</button>
         </div>
       </div>
     </div>`).join('');
