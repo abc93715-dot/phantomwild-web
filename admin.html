@@ -5,48 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Phantom Wild — 管理後台</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+TC:wght@300;400&display=swap" rel="stylesheet">
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, setDoc, getDoc }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-  // 🔥 Firebase 設定
-  const firebaseConfig = {
+<!-- Firebase Compat SDK（全域可用，無 module 作用域問題） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script>
+  firebase.initializeApp({
     apiKey: "AIzaSyDnUAP9JsVidvnJ3BZNwmtDWi9sm7j31iw",
     authDomain: "pwweb-d2c64.firebaseapp.com",
     projectId: "pwweb-d2c64",
     storageBucket: "pwweb-d2c64.firebasestorage.app",
     messagingSenderId: "950190636899",
-    appId: "1:950190636899:web:56ee9f6aaa81da49c05d56",
-    measurementId: "G-Z2H591MXFT"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-  window.DB = db; window.STORAGE = storage;
-  window.FSfns = { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, setDoc, getDoc, ref, uploadBytes, getDownloadURL };
-
-  // Realtime listeners
-  onSnapshot(query(collection(db,'pets'), orderBy('createdAt','desc')), snap => {
-    window.PETS = snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(window._loggedIn) { renderPetList(); updateStats(); }
+    appId: "1:950190636899:web:56ee9f6aaa81da49c05d56"
   });
-  onSnapshot(query(collection(db,'supplies'), orderBy('createdAt','desc')), snap => {
-    window.SUPPLIES = snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(window._loggedIn) { renderSupplyList(); updateStats(); }
-  });
-  onSnapshot(query(collection(db,'inquiries'), orderBy('timestamp','desc')), snap => {
-    window.INQUIRIES = snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(window._loggedIn) { renderInquiries(); updateStats(); }
-  });
-  onSnapshot(query(collection(db,'contacts'), orderBy('timestamp','desc')), snap => {
-    window.CONTACTS = snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(window._loggedIn) { renderContacts(); updateStats(); }
-  });
+  const db = firebase.firestore();
+  const storage = firebase.storage();
 </script>
+
 <style>
 :root{
   --black:#0e0c08;--deep:#141208;--card:#1c1a12;
@@ -57,8 +33,6 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--black);color:var(--cream);font-family:'Noto Serif TC',serif;font-weight:300;min-height:100vh}
-
-/* LOGIN */
 #loginScreen{position:fixed;inset:0;background:var(--black);z-index:999;display:flex;align-items:center;justify-content:center}
 .lb{background:var(--deep);border:1px solid var(--border);padding:52px 48px;width:360px;text-align:center}
 .lb-logo{font-family:'Cinzel Decorative',serif;font-size:.88rem;letter-spacing:.32em;color:var(--warm);margin-bottom:6px}
@@ -67,36 +41,24 @@ body{background:var(--black);color:var(--cream);font-family:'Noto Serif TC',seri
 .lb input:focus{border-color:var(--warm)}
 .lb-btn{width:100%;padding:13px;font-family:'Cormorant Garamond',serif;font-size:.88rem;letter-spacing:.28em;text-transform:uppercase;color:#12100a;background:linear-gradient(135deg,var(--cream2),var(--warm));border:none;cursor:pointer}
 .lb-err{font-family:'Cormorant Garamond',serif;font-size:.8rem;color:#c0605a;margin-top:10px;display:none}
-
-/* HEADER */
 header{background:var(--deep);border-bottom:1px solid var(--border);padding:16px 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .h-logo{font-family:'Cinzel Decorative',serif;font-size:.8rem;letter-spacing:.28em;color:var(--warm)}
 .h-btns{display:flex;gap:8px}
-.h-btn{font-family:'Cormorant Garamond',serif;font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);padding:6px 13px;background:none;cursor:pointer;text-decoration:none;transition:all .3s}
+.h-btn{font-family:'Cormorant Garamond',serif;font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);padding:6px 13px;background:none;cursor:pointer;text-decoration:none;display:inline-block;transition:all .3s}
 .h-btn:hover{color:var(--warm);border-color:var(--warm)}
 .h-btn.danger:hover{color:#c0605a;border-color:#8b3a3a}
-
-/* TABS */
 .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--deep);padding:0 36px;overflow-x:auto}
 .tab{font-family:'Cormorant Garamond',serif;font-size:.84rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);padding:14px 20px;cursor:pointer;border-bottom:2px solid transparent;transition:all .3s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
 .tab.act{color:var(--warm);border-bottom-color:var(--warm)}
 .tab:hover{color:var(--cream)}
 .tbadge{background:#8b3a3a;color:#fff;font-size:.58rem;padding:1px 5px;border-radius:7px;margin-left:5px;vertical-align:middle}
-
-/* CONTENT */
 .content{padding:28px 36px;max-width:1280px;margin:0 auto}
 .panel{display:none}.panel.act{display:block}
-
-/* STATS */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
 .sbox{background:var(--deep);border:1px solid var(--border);padding:18px 20px}
 .sbox-n{font-family:'Cinzel Decorative',serif;font-size:1.45rem;color:var(--warm);margin-bottom:4px}
 .sbox-l{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.76rem;color:var(--text-dim)}
-
-/* GRID LAYOUT */
 .pgrid{display:grid;grid-template-columns:1fr 1.55fr;gap:24px;align-items:start}
-
-/* FORM CARD */
 .fc{background:var(--deep);border:1px solid var(--border);padding:26px}
 .fc-title{font-family:'Cinzel Decorative',serif;font-size:.85rem;color:var(--white);letter-spacing:.07em;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .edit-bar{background:rgba(138,115,85,.1);border:1px solid var(--warm-dim);padding:9px 13px;margin-bottom:14px;display:none;align-items:center;justify-content:space-between;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.82rem;color:var(--warm)}
@@ -112,21 +74,20 @@ option{background:var(--deep)}
 .action-btn:disabled{opacity:.5;cursor:not-allowed}
 .cancel-btn{width:100%;padding:10px;font-family:'Cormorant Garamond',serif;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);background:none;cursor:pointer;transition:all .3s;margin-top:6px}
 .cancel-btn:hover{color:var(--cream);border-color:var(--border-h)}
-
-/* IMG UPLOAD */
-.img-zone{border:2px dashed var(--border);padding:16px;text-align:center;cursor:pointer;transition:border-color .3s;margin-bottom:14px;position:relative}
+/* 圖片上傳區 */
+.img-zone{border:2px dashed var(--border);padding:22px 16px;text-align:center;cursor:pointer;transition:border-color .3s;margin-bottom:8px;display:block;position:relative;overflow:hidden}
 .img-zone:hover{border-color:var(--warm)}
-.img-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.img-zone-label{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.84rem;color:var(--text-dim);pointer-events:none}
-.img-preview{width:100%;max-height:120px;object-fit:cover;border:1px solid var(--border);margin-top:8px;display:none}
+.img-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2}
+.img-zone-label{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.84rem;color:var(--text-dim);pointer-events:none;display:block}
+.img-preview{width:100%;max-height:130px;object-fit:cover;border:1px solid var(--border);margin-top:10px;display:none}
 .current-img{width:100%;height:90px;object-fit:cover;border:1px solid var(--border);margin-bottom:8px;display:none}
-
-/* LIST */
+.file-hint{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.78rem;color:var(--warm);margin-top:6px;display:none}
+/* 清單 */
 .lc{background:var(--deep);border:1px solid var(--border);padding:22px}
 .lc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)}
 .lc-title{font-family:'Cinzel Decorative',serif;font-size:.82rem;color:var(--white);letter-spacing:.06em}
 .lc-count{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.78rem;color:var(--text-dim)}
-.list{display:flex;flex-direction:column;gap:7px;max-height:500px;overflow-y:auto}
+.list{display:flex;flex-direction:column;gap:7px;max-height:520px;overflow-y:auto}
 .li{display:flex;align-items:center;gap:11px;padding:11px 13px;background:rgba(138,115,85,.04);border:1px solid var(--border);transition:border-color .3s}
 .li:hover{border-color:var(--border-h)}
 .li-img{width:46px;height:46px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
@@ -143,8 +104,7 @@ option{background:var(--deep)}
 .li-dbtn{color:#c0605a;border-color:rgba(139,58,58,.3)}
 .li-dbtn:hover{background:rgba(139,58,58,.1)}
 .empty{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-dim);text-align:center;padding:36px 0}
-
-/* MESSAGES */
+/* 訊息 */
 .msg-list{display:flex;flex-direction:column;gap:11px}
 .msg{background:var(--deep);border:1px solid var(--border);padding:18px 22px;transition:border-color .3s}
 .msg.unread{border-left:3px solid var(--warm)}
@@ -156,7 +116,6 @@ option{background:var(--deep)}
 .msg-time{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.72rem;color:var(--text-dim)}
 .msg-dot{width:7px;height:7px;border-radius:50%;background:var(--warm);flex-shrink:0}
 .msg-pet-ref{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.78rem;color:var(--text-dim);margin-bottom:7px}
-.msg-type{font-family:'Cormorant Garamond',serif;font-size:.78rem;color:var(--text-dim);margin-bottom:7px}
 .msg-content{font-family:'Cormorant Garamond',serif;font-size:.9rem;color:var(--text);line-height:1.7;margin-bottom:11px;padding:10px 14px;background:rgba(138,115,85,.04);border-left:2px solid var(--warm-dim)}
 .msg-btns{display:flex;gap:7px;flex-wrap:wrap}
 .btn-ig{font-family:'Cormorant Garamond',serif;font-size:.73rem;letter-spacing:.15em;text-transform:uppercase;color:#12100a;background:var(--warm);border:none;padding:7px 15px;cursor:pointer;text-decoration:none;display:inline-block;transition:all .3s}
@@ -166,15 +125,10 @@ option{background:var(--deep)}
 .btn-del{font-family:'Cormorant Garamond',serif;font-size:.73rem;letter-spacing:.14em;text-transform:uppercase;color:#c0605a;border:1px solid rgba(139,58,58,.3);background:none;padding:7px 13px;cursor:pointer;transition:all .3s}
 .btn-del:hover{background:rgba(139,58,58,.1)}
 .no-msg{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-dim);text-align:center;padding:56px 0}
-
-/* HERO BANNER */
 .banner-preview{width:100%;height:180px;object-fit:cover;border:1px solid var(--border);margin-bottom:14px;display:block;background:#131108}
 .banner-empty{width:100%;height:180px;background:#131108;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-dim)}
-
-/* TOAST */
-.toast{position:fixed;bottom:26px;right:26px;background:var(--deep);border:1px solid var(--warm);padding:12px 20px;font-family:'Cormorant Garamond',serif;font-size:.85rem;color:var(--warm);letter-spacing:.1em;z-index:9999;transform:translateY(80px);opacity:0;transition:all .35s;max-width:300px}
+.toast{position:fixed;bottom:26px;right:26px;background:var(--deep);border:1px solid var(--warm);padding:12px 20px;font-family:'Cormorant Garamond',serif;font-size:.85rem;color:var(--warm);letter-spacing:.1em;z-index:9999;transform:translateY(80px);opacity:0;transition:all .35s;max-width:320px;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
-
 @media(max-width:900px){
   .pgrid{grid-template-columns:1fr}
   .stats{grid-template-columns:1fr 1fr}
@@ -186,7 +140,6 @@ option{background:var(--deep)}
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <div class="lb">
     <div class="lb-logo">PHANTOM WILD</div>
@@ -197,12 +150,11 @@ option{background:var(--deep)}
   </div>
 </div>
 
-<!-- MAIN APP -->
 <div id="mainApp" style="display:none">
   <header>
     <div class="h-logo">PHANTOM WILD — 管理後台</div>
     <div class="h-btns">
-      <a href="phantom_wild_index.html" target="_blank" class="h-btn">前往網站 ↗</a>
+      <a href="index.html" target="_blank" class="h-btn">前往網站 ↗</a>
       <button class="h-btn danger" onclick="doLogout()">登出</button>
     </div>
   </header>
@@ -216,15 +168,14 @@ option{background:var(--deep)}
   </div>
 
   <div class="content">
-    <!-- STATS -->
     <div class="stats">
-      <div class="sbox"><div class="sbox-n" id="stPets">0</div><div class="sbox-l">現有寵物</div></div>
-      <div class="sbox"><div class="sbox-n" id="stSupp">0</div><div class="sbox-l">現有用品</div></div>
-      <div class="sbox"><div class="sbox-n" id="stInq">0</div><div class="sbox-l">未讀詢問</div></div>
-      <div class="sbox"><div class="sbox-n" id="stCt">0</div><div class="sbox-l">未讀聯絡</div></div>
+      <div class="sbox"><div class="sbox-n" id="stPets">—</div><div class="sbox-l">現有寵物</div></div>
+      <div class="sbox"><div class="sbox-n" id="stSupp">—</div><div class="sbox-l">現有用品</div></div>
+      <div class="sbox"><div class="sbox-n" id="stInq">—</div><div class="sbox-l">未讀詢問</div></div>
+      <div class="sbox"><div class="sbox-n" id="stCt">—</div><div class="sbox-l">未讀聯絡</div></div>
     </div>
 
-    <!-- ── PETS ── -->
+    <!-- PETS -->
     <div class="panel act" id="panel-pets">
       <div class="pgrid">
         <div class="fc">
@@ -232,7 +183,6 @@ option{background:var(--deep)}
           <div class="edit-bar" id="editBar">✏️ 編輯模式中
             <button class="cancel-btn" style="width:auto;padding:4px 10px;margin:0" onclick="cancelEditPet()">取消</button>
           </div>
-          <input type="hidden" id="editPetId">
           <div class="fg"><label>個體名稱 *</label><input id="pName" placeholder="例：Lemon Frost"></div>
           <div class="fgrow">
             <div class="fg"><label>分類 *</label>
@@ -244,7 +194,7 @@ option{background:var(--deep)}
             </div>
             <div class="fg"><label>價格 NT$ *</label><input type="number" id="pPrice" placeholder="3800"></div>
           </div>
-          <div class="fg"><label>學名 / 品種</label><input id="pSpecies" placeholder="例：Eublepharis macularius"></div>
+          <div class="fg"><label>學名 / 品種</label><input id="pSpecies" placeholder="例：豹紋守宮"></div>
           <div class="fg"><label>標籤（逗號分隔）</label><input id="pTags" placeholder="CB個體, 雌性, 已開食"></div>
           <div class="fgrow">
             <div class="fg"><label>標記</label>
@@ -260,29 +210,30 @@ option{background:var(--deep)}
             <div class="fg"><label>Emoji 圖示</label><input id="pEmoji" placeholder="🦎" value="🦎"></div>
           </div>
           <div class="fg"><label>備註說明</label><textarea id="pNote" placeholder="個體補充說明..."></textarea></div>
-          <div class="fg"><label>個體照片</label>
+          <div class="fg">
+            <label>個體照片</label>
             <img id="pCurrentImg" class="current-img" alt="目前照片">
-            <div class="img-zone" onclick="document.getElementById('pImgFile').click()">
-              <input type="file" id="pImgFile" accept="image/*" onchange="previewFile(this,'pImgPreview','pCurrentImg')">
-              <div class="img-zone-label">點擊上傳照片（JPG / PNG）</div>
+            <label class="img-zone" for="pImgFile">
+              <input type="file" id="pImgFile" accept="image/*" onchange="previewImg(this,'pImgPreview','pCurrentImg','pHint')">
+              <span class="img-zone-label">📷 點擊選擇照片（JPG / PNG）</span>
               <img id="pImgPreview" class="img-preview">
-            </div>
+            </label>
+            <div class="file-hint" id="pHint"></div>
           </div>
           <button class="action-btn" id="petSaveBtn" onclick="savePet()">新增個體</button>
           <button class="cancel-btn" id="petCancelBtn" style="display:none" onclick="cancelEditPet()">取消編輯</button>
         </div>
-
         <div class="lc">
           <div class="lc-head">
             <div class="lc-title">個體列表</div>
-            <div class="lc-count" id="petCount">0 隻</div>
+            <div class="lc-count" id="petCount">連線中…</div>
           </div>
-          <div class="list" id="petList"><div class="empty">還沒有個體</div></div>
+          <div class="list" id="petList"><div class="empty">連線中，請稍候…</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ── SUPPLIES ── -->
+    <!-- SUPPLIES -->
     <div class="panel" id="panel-supplies">
       <div class="pgrid">
         <div class="fc">
@@ -290,7 +241,6 @@ option{background:var(--deep)}
           <div class="edit-bar" id="editBarSupp">✏️ 編輯模式中
             <button class="cancel-btn" style="width:auto;padding:4px 10px;margin:0" onclick="cancelEditSupp()">取消</button>
           </div>
-          <input type="hidden" id="editSuppId">
           <div class="fg"><label>商品名稱 *</label><input id="sName" placeholder="例：UVB 5.0 爬蟲燈管"></div>
           <div class="fgrow">
             <div class="fg"><label>分類</label>
@@ -312,42 +262,44 @@ option{background:var(--deep)}
           <button class="action-btn" id="suppSaveBtn" onclick="saveSupply()">新增用品</button>
           <button class="cancel-btn" id="suppCancelBtn" style="display:none" onclick="cancelEditSupp()">取消編輯</button>
         </div>
-
         <div class="lc">
           <div class="lc-head">
             <div class="lc-title">用品列表</div>
-            <div class="lc-count" id="suppCount">0 項</div>
+            <div class="lc-count" id="suppCount">連線中…</div>
           </div>
-          <div class="list" id="suppList"><div class="empty">還沒有用品</div></div>
+          <div class="list" id="suppList"><div class="empty">連線中，請稍候…</div></div>
         </div>
       </div>
     </div>
 
-    <!-- ── INQUIRIES ── -->
+    <!-- INQUIRIES -->
     <div class="panel" id="panel-inquiries">
       <div id="inqList"><div class="no-msg">載入中...</div></div>
     </div>
 
-    <!-- ── CONTACTS ── -->
+    <!-- CONTACTS -->
     <div class="panel" id="panel-contacts">
       <div id="ctList"><div class="no-msg">載入中...</div></div>
     </div>
 
-    <!-- ── BANNER ── -->
+    <!-- BANNER -->
     <div class="panel" id="panel-banner">
       <div class="pgrid">
         <div class="fc">
           <div class="fc-title">更換廣告照片</div>
-          <div class="fg"><label>目前廣告照片</label>
+          <div class="fg">
+            <label>目前廣告照片</label>
             <div id="bannerEmpty" class="banner-empty">目前使用預設背景</div>
             <img id="bannerCurrent" class="banner-preview" style="display:none" alt="廣告照片">
           </div>
-          <div class="fg"><label>上傳新廣告照片</label>
-            <div class="img-zone" onclick="document.getElementById('bannerFile').click()">
-              <input type="file" id="bannerFile" accept="image/*" onchange="previewFile(this,'bannerPreview',null)">
-              <div class="img-zone-label">點擊上傳（建議尺寸 1920×1080 或更寬）</div>
+          <div class="fg">
+            <label>上傳新廣告照片</label>
+            <label class="img-zone" for="bannerFile">
+              <input type="file" id="bannerFile" accept="image/*" onchange="previewImg(this,'bannerPreview',null,'bannerHint')">
+              <span class="img-zone-label">📷 點擊選擇（建議 1920×1080 或更寬）</span>
               <img id="bannerPreview" class="img-preview">
-            </div>
+            </label>
+            <div class="file-hint" id="bannerHint"></div>
           </div>
           <div class="fg"><label>廣告標題（選填）</label><input id="bannerTitle" placeholder="例：幻野爬蟲專賣"></div>
           <div class="fg"><label>廣告副標題（選填）</label><input id="bannerSubtitle" placeholder="例：守宮 · 蛇類 · 兩棲 · 用品"></div>
@@ -356,36 +308,44 @@ option{background:var(--deep)}
         <div class="fc">
           <div class="fc-title">說明</div>
           <div style="font-family:'Cormorant Garamond',serif;font-size:.92rem;color:var(--text);line-height:1.9">
-            <p>上傳後廣告照片會立即顯示在官網 Hero 區塊（最頂部的大圖區域）。</p>
-            <br>
-            <p>建議使用：</p>
-            <p>• 橫向照片（寬比高）</p>
-            <p>• 最小 1200px 寬</p>
-            <p>• 深色系照片效果最好</p>
-            <p>• JPG 或 PNG 格式</p>
-            <br>
-            <p style="color:var(--text-dim)">照片會自動裁切並置中顯示，上方文字會疊加在照片上。</p>
+            <p>上傳後廣告照片會立即顯示在官網 Hero 區塊。</p><br>
+            <p>建議使用：<br>• 橫向照片（寬比高）<br>• 最小 1200px 寬<br>• 深色系照片效果最好<br>• JPG 或 PNG 格式</p><br>
+            <p style="color:var(--text-dim)">照片會自動裁切並置中顯示。</p>
           </div>
         </div>
       </div>
     </div>
-
-  </div><!-- end content -->
-</div><!-- end mainApp -->
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+// ─── 設定 ───
 const ADMIN_PASSWORD = 'phantomwild2025';
-window._loggedIn = false;
-window.PETS = []; window.SUPPLIES = []; window.INQUIRIES = []; window.CONTACTS = [];
+let PETS = [], SUPPLIES = [], INQUIRIES = [], CONTACTS = [];
+let _editingPetId = null, _editingSuppId = null;
 
-// ── Login ──
+// ─── 工具 ───
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3200);
+}
+function fmtTime(ts){
+  if(!ts) return '—';
+  if(ts.toDate) return ts.toDate().toLocaleString('zh-TW');
+  if(ts.seconds) return new Date(ts.seconds*1000).toLocaleString('zh-TW');
+  return String(ts);
+}
+
+// ─── 登入 ───
 function doLogin(){
   if(document.getElementById('pwInput').value === ADMIN_PASSWORD){
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    window._loggedIn = true;
+    startListeners();
     loadBanner();
   } else {
     document.getElementById('loginErr').style.display = 'block';
@@ -395,10 +355,32 @@ function doLogout(){
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('pwInput').value = '';
-  window._loggedIn = false;
 }
 
-// ── Tabs ──
+// ─── Firebase 監聽（登入後才啟動，避免規則錯誤）───
+function startListeners(){
+  db.collection('pets').orderBy('createdAt','desc').onSnapshot(snap=>{
+    PETS = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderPetList(); updateStats();
+  }, e=>toast('⚠️ 寵物連線錯誤：'+e.message));
+
+  db.collection('supplies').orderBy('createdAt','desc').onSnapshot(snap=>{
+    SUPPLIES = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderSupplyList(); updateStats();
+  }, e=>toast('⚠️ 用品連線錯誤：'+e.message));
+
+  db.collection('inquiries').orderBy('timestamp','desc').onSnapshot(snap=>{
+    INQUIRIES = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderInquiries(); updateStats();
+  });
+
+  db.collection('contacts').orderBy('timestamp','desc').onSnapshot(snap=>{
+    CONTACTS = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderContacts(); updateStats();
+  });
+}
+
+// ─── Tab ───
 function switchTab(name, btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
@@ -406,63 +388,56 @@ function switchTab(name, btn){
   document.getElementById('panel-'+name).classList.add('act');
 }
 
-// ── Toast ──
-function toast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2600);
-}
-
-// ── Stats ──
+// ─── 統計 ───
 function updateStats(){
-  document.getElementById('stPets').textContent = (window.PETS||[]).length;
-  document.getElementById('stSupp').textContent = (window.SUPPLIES||[]).length;
-  const unreadInq = (window.INQUIRIES||[]).filter(i=>i.status!=='已讀').length;
-  const unreadCt = (window.CONTACTS||[]).filter(c=>c.status!=='已讀').length;
-  document.getElementById('stInq').textContent = unreadInq;
-  document.getElementById('stCt').textContent = unreadCt;
-  const ib = document.getElementById('inqBadge');
-  const cb = document.getElementById('ctBadge');
-  ib.style.display = unreadInq > 0 ? '' : 'none'; ib.textContent = unreadInq;
-  cb.style.display = unreadCt > 0 ? '' : 'none'; cb.textContent = unreadCt;
+  document.getElementById('stPets').textContent = PETS.length;
+  document.getElementById('stSupp').textContent = SUPPLIES.length;
+  const ui = INQUIRIES.filter(i=>i.status!=='已讀').length;
+  const uc = CONTACTS.filter(c=>c.status!=='已讀').length;
+  document.getElementById('stInq').textContent = ui;
+  document.getElementById('stCt').textContent = uc;
+  const ib=document.getElementById('inqBadge'), cb=document.getElementById('ctBadge');
+  ib.style.display=ui>0?'':'none'; ib.textContent=ui;
+  cb.style.display=uc>0?'':'none'; cb.textContent=uc;
 }
 
-// ── Image preview ──
-function previewFile(input, previewId, currentId){
-  if(currentId) document.getElementById(currentId).style.display = 'none';
-  const preview = document.getElementById(previewId);
+// ─── 圖片預覽 ───
+function previewImg(input, previewId, currentId, hintId){
+  if(currentId) document.getElementById(currentId).style.display='none';
+  const preview=document.getElementById(previewId);
+  const hint=hintId?document.getElementById(hintId):null;
   if(input.files && input.files[0]){
-    const r = new FileReader();
-    r.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+    const r=new FileReader();
+    r.onload=e=>{
+      preview.src=e.target.result; preview.style.display='block';
+      if(hint){ hint.style.display='block'; hint.textContent='✅ 已選擇：'+input.files[0].name+' — 點下方按鈕即可上傳'; }
+    };
     r.readAsDataURL(input.files[0]);
   }
 }
 
+// ─── 上傳到 Firebase Storage ───
 async function uploadImage(file, path){
-  if(!window.STORAGE || !window.FSfns) return '';
-  const fns = window.FSfns;
-  const sRef = fns.ref(window.STORAGE, path);
-  await fns.uploadBytes(sRef, file);
-  return await fns.getDownloadURL(sRef);
+  const ref = storage.ref(path);
+  const snap = await ref.put(file);
+  return await snap.ref.getDownloadURL();
 }
 
-// ── PETS ──
-let _editingPetId = null;
-
+// ══════════ 寵物 ══════════
 function renderPetList(){
-  const d = window.PETS || [];
-  document.getElementById('petCount').textContent = d.length + ' 隻';
-  const el = document.getElementById('petList');
-  if(!d.length){ el.innerHTML = '<div class="empty">還沒有個體，新增第一隻吧！</div>'; return; }
-  el.innerHTML = d.map(p=>`
+  document.getElementById('petCount').textContent = PETS.length+' 隻';
+  const el=document.getElementById('petList');
+  if(!PETS.length){ el.innerHTML='<div class="empty">還沒有個體，從左側新增第一隻吧！</div>'; return; }
+  el.innerHTML=PETS.map(p=>`
     <div class="li">
-      ${p.imageUrl ? `<img class="li-img" src="${p.imageUrl}" alt="${p.name}">` : `<div class="li-em">${p.emoji||'🦎'}</div>`}
+      ${p.imageUrl?`<img class="li-img" src="${esc(p.imageUrl)}" alt="${esc(p.name)}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:``}
+      <div class="li-em" ${p.imageUrl?'style="display:none"':''}>${p.emoji||'🦎'}</div>
       <div class="li-inf">
-        <div class="li-nm">${p.name}</div>
-        <div class="li-sb">${p.species||''} · ${{gecko:'守宮',snake:'蛇類',frog:'青蛙'}[p.cat]||p.cat}</div>
+        <div class="li-nm">${esc(p.name)}</div>
+        <div class="li-sb">${esc(p.species||'')} · ${{gecko:'守宮',snake:'蛇類',frog:'青蛙'}[p.cat]||p.cat||''}</div>
       </div>
-      ${p.badge ? `<div class="li-bdg">${p.badge}</div>` : ''}
-      <div class="li-pr">NT$ ${Number(p.price).toLocaleString()}</div>
+      ${p.badge?`<div class="li-bdg">${esc(p.badge)}</div>`:''}
+      <div class="li-pr">NT$ ${Number(p.price||0).toLocaleString()}</div>
       <div class="li-acts">
         <button class="li-ebtn" onclick="startEditPet('${p.id}')">編輯</button>
         <button class="li-dbtn" onclick="deletePet('${p.id}')">刪除</button>
@@ -471,102 +446,114 @@ function renderPetList(){
 }
 
 function startEditPet(id){
-  const p = window.PETS.find(x=>x.id===id);
-  if(!p) return;
-  _editingPetId = id;
-  document.getElementById('editPetId').value = id;
-  document.getElementById('pName').value = p.name||'';
-  document.getElementById('pSpecies').value = p.species||'';
-  document.getElementById('pCat').value = p.cat||'gecko';
-  document.getElementById('pPrice').value = p.price||'';
-  document.getElementById('pTags').value = (p.tags||[]).join(', ');
-  document.getElementById('pBadge').value = p.badge||'';
-  document.getElementById('pEmoji').value = p.emoji||'🦎';
-  document.getElementById('pNote').value = p.note||'';
-  const ci = document.getElementById('pCurrentImg');
-  if(p.imageUrl){ ci.src = p.imageUrl; ci.style.display = 'block'; } else ci.style.display = 'none';
-  document.getElementById('pImgPreview').style.display = 'none';
-  document.getElementById('pImgFile').value = '';
-  document.getElementById('petFormTitle').textContent = '編輯個體：' + p.name;
+  const p=PETS.find(x=>x.id===id);
+  if(!p){ toast('找不到資料'); return; }
+  _editingPetId=id;
+  document.getElementById('pName').value=p.name||'';
+  document.getElementById('pSpecies').value=p.species||'';
+  document.getElementById('pCat').value=p.cat||'gecko';
+  document.getElementById('pPrice').value=p.price||'';
+  document.getElementById('pTags').value=(p.tags||[]).join(', ');
+  document.getElementById('pBadge').value=p.badge||'';
+  document.getElementById('pEmoji').value=p.emoji||'🦎';
+  document.getElementById('pNote').value=p.note||'';
+  const ci=document.getElementById('pCurrentImg');
+  if(p.imageUrl){ ci.src=p.imageUrl; ci.style.display='block'; } else ci.style.display='none';
+  document.getElementById('pImgPreview').style.display='none';
+  document.getElementById('pHint').style.display='none';
+  document.getElementById('pImgFile').value='';
+  document.getElementById('petFormTitle').textContent='編輯：'+p.name;
   document.getElementById('editBar').classList.add('show');
-  document.getElementById('petSaveBtn').textContent = '儲存變更';
-  document.getElementById('petCancelBtn').style.display = 'block';
-  window.scrollTo({top:0, behavior:'smooth'});
-  toast('已載入個體資料，請修改後儲存');
+  document.getElementById('petSaveBtn').textContent='儲存變更';
+  document.getElementById('petCancelBtn').style.display='block';
+  // 切換到寵物 tab
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.panel').forEach(p2=>p2.classList.remove('act'));
+  document.querySelector('[onclick="switchTab(\'pets\',this)"]').classList.add('act');
+  document.getElementById('panel-pets').classList.add('act');
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('已載入個體資料，修改後點「儲存變更」');
 }
 
 function cancelEditPet(){
-  _editingPetId = null;
-  document.getElementById('editPetId').value = '';
+  _editingPetId=null;
   ['pName','pSpecies','pPrice','pTags','pNote'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('pCat').value = 'gecko';
-  document.getElementById('pBadge').value = '';
-  document.getElementById('pEmoji').value = '🦎';
-  document.getElementById('pCurrentImg').style.display = 'none';
-  document.getElementById('pImgPreview').style.display = 'none';
-  document.getElementById('pImgFile').value = '';
-  document.getElementById('petFormTitle').textContent = '新增個體';
+  document.getElementById('pCat').value='gecko';
+  document.getElementById('pBadge').value='';
+  document.getElementById('pEmoji').value='🦎';
+  document.getElementById('pCurrentImg').style.display='none';
+  document.getElementById('pImgPreview').style.display='none';
+  document.getElementById('pHint').style.display='none';
+  document.getElementById('pImgFile').value='';
+  document.getElementById('petFormTitle').textContent='新增個體';
   document.getElementById('editBar').classList.remove('show');
-  document.getElementById('petSaveBtn').textContent = '新增個體';
-  document.getElementById('petCancelBtn').style.display = 'none';
+  document.getElementById('petSaveBtn').textContent='新增個體';
+  document.getElementById('petCancelBtn').style.display='none';
 }
 
 async function savePet(){
-  const name = document.getElementById('pName').value.trim();
-  const price = document.getElementById('pPrice').value;
-  if(!name||!price){ toast('請填寫名稱和價格！'); return; }
-  const btn = document.getElementById('petSaveBtn');
-  btn.disabled = true; btn.textContent = '儲存中…';
+  const name=document.getElementById('pName').value.trim();
+  const price=document.getElementById('pPrice').value.trim();
+  if(!name||!price){ toast('⚠️ 請填寫名稱和價格！'); return; }
+
+  const btn=document.getElementById('petSaveBtn');
+  const editId=_editingPetId; // 在任何 async 前先擷取，避免被 cancel 清空
+  btn.disabled=true; btn.textContent='儲存中…';
+
   try{
-    const fns = window.FSfns;
-    let imageUrl = _editingPetId ? (window.PETS.find(p=>p.id===_editingPetId)||{}).imageUrl||'' : '';
-    const file = document.getElementById('pImgFile').files[0];
-    if(file) imageUrl = await uploadImage(file, `pets/${Date.now()}_${file.name}`);
-    const data = {
-      name, price: Number(price),
-      species: document.getElementById('pSpecies').value.trim(),
-      cat: document.getElementById('pCat').value,
-      tags: document.getElementById('pTags').value.split(',').map(t=>t.trim()).filter(Boolean),
-      badge: document.getElementById('pBadge').value,
-      emoji: document.getElementById('pEmoji').value||'🦎',
-      note: document.getElementById('pNote').value.trim(),
+    let imageUrl = editId ? ((PETS.find(p=>p.id===editId)||{}).imageUrl||'') : '';
+    const file=document.getElementById('pImgFile').files[0];
+    if(file){
+      btn.textContent='上傳照片中…';
+      imageUrl=await uploadImage(file, `pets/${Date.now()}_${file.name}`);
+    }
+    const data={
+      name, price:Number(price),
+      species:document.getElementById('pSpecies').value.trim(),
+      cat:document.getElementById('pCat').value,
+      tags:document.getElementById('pTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+      badge:document.getElementById('pBadge').value,
+      emoji:document.getElementById('pEmoji').value||'🦎',
+      note:document.getElementById('pNote').value.trim(),
       imageUrl,
     };
-    if(_editingPetId){
-      await fns.updateDoc(fns.doc(window.DB,'pets',_editingPetId), data);
+    if(editId){
+      await db.collection('pets').doc(editId).update(data);
       toast('✅ 個體已更新！');
     } else {
-      await fns.addDoc(fns.collection(window.DB,'pets'), {...data, createdAt: fns.serverTimestamp()});
+      await db.collection('pets').add({...data, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       toast('✅ 個體已新增！');
     }
     cancelEditPet();
-  } catch(e){ console.error(e); toast('⚠️ 儲存失敗：'+e.message); }
-  btn.disabled = false; btn.textContent = _editingPetId ? '儲存變更' : '新增個體';
+  } catch(e){
+    console.error('savePet:', e);
+    toast('⚠️ 儲存失敗：'+e.message);
+  }
+  btn.disabled=false; btn.textContent='新增個體';
 }
 
 async function deletePet(id){
   if(!confirm('確定刪除這隻個體？')) return;
-  await window.FSfns.deleteDoc(window.FSfns.doc(window.DB,'pets',id));
-  if(_editingPetId === id) cancelEditPet();
-  toast('🗑️ 個體已刪除');
+  try{
+    await db.collection('pets').doc(id).delete();
+    if(_editingPetId===id) cancelEditPet();
+    toast('🗑️ 個體已刪除');
+  } catch(e){ toast('⚠️ 刪除失敗：'+e.message); }
 }
 
-// ── SUPPLIES ──
-let _editingSuppId = null;
-
+// ══════════ 用品 ══════════
 function renderSupplyList(){
-  const d = window.SUPPLIES||[];
-  document.getElementById('suppCount').textContent = d.length + ' 項';
-  const el = document.getElementById('suppList');
-  if(!d.length){ el.innerHTML = '<div class="empty">還沒有用品</div>'; return; }
-  el.innerHTML = d.map(s=>`
+  document.getElementById('suppCount').textContent=SUPPLIES.length+' 項';
+  const el=document.getElementById('suppList');
+  if(!SUPPLIES.length){ el.innerHTML='<div class="empty">還沒有用品</div>'; return; }
+  el.innerHTML=SUPPLIES.map(s=>`
     <div class="li">
       <div class="li-em">${s.icon||'📦'}</div>
       <div class="li-inf">
-        <div class="li-nm">${s.name}</div>
-        <div class="li-sb">${s.cat||''}</div>
+        <div class="li-nm">${esc(s.name)}</div>
+        <div class="li-sb">${esc(s.cat||'')}</div>
       </div>
-      <div class="li-pr">NT$ ${Number(s.price).toLocaleString()}</div>
+      <div class="li-pr">NT$ ${Number(s.price||0).toLocaleString()}</div>
       <div class="li-acts">
         <button class="li-ebtn" onclick="startEditSupp('${s.id}')">編輯</button>
         <button class="li-dbtn" onclick="deleteSupply('${s.id}')">刪除</button>
@@ -575,184 +562,177 @@ function renderSupplyList(){
 }
 
 function startEditSupp(id){
-  const s = window.SUPPLIES.find(x=>x.id===id);
-  if(!s) return;
-  _editingSuppId = id;
-  document.getElementById('editSuppId').value = id;
-  document.getElementById('sName').value = s.name||'';
-  document.getElementById('sCat').value = s.cat||'照明';
-  document.getElementById('sPrice').value = s.price||'';
-  document.getElementById('sDesc').value = s.desc||'';
-  document.getElementById('sIcon').value = s.icon||'📦';
-  document.getElementById('suppFormTitle').textContent = '編輯用品：' + s.name;
+  const s=SUPPLIES.find(x=>x.id===id);
+  if(!s){ toast('找不到資料'); return; }
+  _editingSuppId=id;
+  document.getElementById('sName').value=s.name||'';
+  document.getElementById('sCat').value=s.cat||'照明';
+  document.getElementById('sPrice').value=s.price||'';
+  document.getElementById('sDesc').value=s.desc||'';
+  document.getElementById('sIcon').value=s.icon||'📦';
+  document.getElementById('suppFormTitle').textContent='編輯：'+s.name;
   document.getElementById('editBarSupp').classList.add('show');
-  document.getElementById('suppSaveBtn').textContent = '儲存變更';
-  document.getElementById('suppCancelBtn').style.display = 'block';
-  // Switch to supplies tab
+  document.getElementById('suppSaveBtn').textContent='儲存變更';
+  document.getElementById('suppCancelBtn').style.display='block';
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('act'));
   document.querySelector('[onclick="switchTab(\'supplies\',this)"]').classList.add('act');
   document.getElementById('panel-supplies').classList.add('act');
-  toast('已載入用品資料');
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('已載入用品資料，修改後點「儲存變更」');
 }
 
 function cancelEditSupp(){
-  _editingSuppId = null;
+  _editingSuppId=null;
   ['sName','sPrice','sDesc'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('sCat').value = '照明';
-  document.getElementById('sIcon').value = '📦';
-  document.getElementById('suppFormTitle').textContent = '新增用品';
+  document.getElementById('sCat').value='照明';
+  document.getElementById('sIcon').value='📦';
+  document.getElementById('suppFormTitle').textContent='新增用品';
   document.getElementById('editBarSupp').classList.remove('show');
-  document.getElementById('suppSaveBtn').textContent = '新增用品';
-  document.getElementById('suppCancelBtn').style.display = 'none';
+  document.getElementById('suppSaveBtn').textContent='新增用品';
+  document.getElementById('suppCancelBtn').style.display='none';
 }
 
 async function saveSupply(){
-  const name = document.getElementById('sName').value.trim();
-  const price = document.getElementById('sPrice').value;
-  if(!name||!price){ toast('請填寫名稱和價格！'); return; }
-  const btn = document.getElementById('suppSaveBtn');
-  btn.disabled = true; btn.textContent = '儲存中…';
+  const name=document.getElementById('sName').value.trim();
+  const price=document.getElementById('sPrice').value.trim();
+  if(!name||!price){ toast('⚠️ 請填寫名稱和價格！'); return; }
+
+  const btn=document.getElementById('suppSaveBtn');
+  const editId=_editingSuppId;
+  btn.disabled=true; btn.textContent='儲存中…';
+
   try{
-    const fns = window.FSfns;
-    const data = {
-      name, price: Number(price),
-      cat: document.getElementById('sCat').value,
-      desc: document.getElementById('sDesc').value.trim(),
-      icon: document.getElementById('sIcon').value||'📦',
+    const data={
+      name, price:Number(price),
+      cat:document.getElementById('sCat').value,
+      desc:document.getElementById('sDesc').value.trim(),
+      icon:document.getElementById('sIcon').value||'📦',
     };
-    if(_editingSuppId){
-      await fns.updateDoc(fns.doc(window.DB,'supplies',_editingSuppId), data);
+    if(editId){
+      await db.collection('supplies').doc(editId).update(data);
       toast('✅ 用品已更新！');
     } else {
-      await fns.addDoc(fns.collection(window.DB,'supplies'), {...data, createdAt: fns.serverTimestamp()});
+      await db.collection('supplies').add({...data, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       toast('✅ 用品已新增！');
     }
     cancelEditSupp();
-  } catch(e){ console.error(e); toast('⚠️ 儲存失敗：'+e.message); }
-  btn.disabled = false;
+  } catch(e){
+    console.error('saveSupply:', e);
+    toast('⚠️ 儲存失敗：'+e.message);
+  }
+  btn.disabled=false; btn.textContent='新增用品';
 }
 
 async function deleteSupply(id){
-  if(!confirm('確定刪除？')) return;
-  await window.FSfns.deleteDoc(window.FSfns.doc(window.DB,'supplies',id));
-  if(_editingSuppId===id) cancelEditSupp();
-  toast('🗑️ 用品已刪除');
+  if(!confirm('確定刪除這項用品？')) return;
+  try{
+    await db.collection('supplies').doc(id).delete();
+    if(_editingSuppId===id) cancelEditSupp();
+    toast('🗑️ 用品已刪除');
+  } catch(e){ toast('⚠️ 刪除失敗：'+e.message); }
 }
 
-// ── INQUIRIES ──
+// ══════════ 詢問 ══════════
 function renderInquiries(){
-  const d = window.INQUIRIES||[];
-  const el = document.getElementById('inqList');
-  if(!d.length){ el.innerHTML = '<div class="no-msg">目前沒有詢問</div>'; return; }
-  el.innerHTML = '<div class="msg-list">' + d.map(i=>`
+  const el=document.getElementById('inqList');
+  if(!INQUIRIES.length){ el.innerHTML='<div class="no-msg">目前沒有詢問</div>'; return; }
+  el.innerHTML='<div class="msg-list">'+INQUIRIES.map(i=>`
     <div class="msg ${i.status!=='已讀'?'unread':''}">
-      <div class="msg-top">
-        <div>
-          <div class="msg-who">${i.name||'匿名'}</div>
-          <div class="msg-contact-val">${i.contact||'—'}</div>
-        </div>
-        <div class="msg-right">
-          ${i.status!=='已讀'?'<div class="msg-dot"></div>':''}
-          <div class="msg-time">${fmtTime(i.timestamp)}</div>
-        </div>
-      </div>
-      <div class="msg-pet-ref">詢問個體：${i.petName||'—'} ｜ ${i.type||'—'}</div>
-      ${i.note ? `<div class="msg-content">${i.note}</div>` : ''}
+      <div class="msg-top"><div>
+        <div class="msg-who">${esc(i.name||'匿名')}</div>
+        <div class="msg-contact-val">${esc(i.contact||'—')}</div>
+      </div><div class="msg-right">
+        ${i.status!=='已讀'?'<div class="msg-dot"></div>':''}
+        <div class="msg-time">${fmtTime(i.timestamp)}</div>
+      </div></div>
+      <div class="msg-pet-ref">詢問個體：${esc(i.petName||'—')} ｜ ${esc(i.type||'—')}</div>
+      ${i.note?`<div class="msg-content">${esc(i.note)}</div>`:''}
       <div class="msg-btns">
         <a class="btn-ig" href="https://www.instagram.com/phantom_wild/" target="_blank">📸 IG 回覆</a>
-        ${i.contact && i.contact.startsWith('@') ? `<a class="btn-ig" href="https://www.instagram.com/${i.contact.replace('@','').trim()}/" target="_blank">直接私訊 ${i.contact}</a>` : ''}
-        ${i.status!=='已讀' ? `<button class="btn-read" onclick="markRead('inquiries','${i.id}')">標為已讀</button>` : ''}
+        ${i.contact&&i.contact.startsWith('@')?`<a class="btn-ig" href="https://www.instagram.com/${encodeURIComponent(i.contact.replace('@','').trim())}/" target="_blank">私訊 ${esc(i.contact)}</a>`:''}
+        ${i.status!=='已讀'?`<button class="btn-read" onclick="markRead('inquiries','${i.id}')">標為已讀</button>`:''}
         <button class="btn-del" onclick="deleteMsg('inquiries','${i.id}')">刪除</button>
       </div>
-    </div>`).join('') + '</div>';
+    </div>`).join('')+'</div>';
 }
 
-// ── CONTACTS ──
+// ══════════ 聯絡 ══════════
 function renderContacts(){
-  const d = window.CONTACTS||[];
-  const el = document.getElementById('ctList');
-  if(!d.length){ el.innerHTML = '<div class="no-msg">目前沒有聯絡表單</div>'; return; }
-  el.innerHTML = '<div class="msg-list">' + d.map(c=>`
+  const el=document.getElementById('ctList');
+  if(!CONTACTS.length){ el.innerHTML='<div class="no-msg">目前沒有聯絡表單</div>'; return; }
+  el.innerHTML='<div class="msg-list">'+CONTACTS.map(c=>`
     <div class="msg ${c.status!=='已讀'?'unread':''}">
-      <div class="msg-top">
-        <div>
-          <div class="msg-who">${c.name||'匿名'}</div>
-          <div class="msg-contact-val">${c.contact||'—'}</div>
-        </div>
-        <div class="msg-right">
-          ${c.status!=='已讀'?'<div class="msg-dot"></div>':''}
-          <div class="msg-time">${fmtTime(c.timestamp)}</div>
-        </div>
-      </div>
-      <div class="msg-content">${c.message||'（無內容）'}</div>
+      <div class="msg-top"><div>
+        <div class="msg-who">${esc(c.name||'匿名')}</div>
+        <div class="msg-contact-val">${esc(c.contact||'—')}</div>
+      </div><div class="msg-right">
+        ${c.status!=='已讀'?'<div class="msg-dot"></div>':''}
+        <div class="msg-time">${fmtTime(c.timestamp)}</div>
+      </div></div>
+      <div class="msg-content">${esc(c.message||'（無內容）')}</div>
       <div class="msg-btns">
         <a class="btn-ig" href="https://www.instagram.com/phantom_wild/" target="_blank">📸 IG 回覆</a>
-        ${c.contact && c.contact.startsWith('@') ? `<a class="btn-ig" href="https://www.instagram.com/${c.contact.replace('@','').trim()}/" target="_blank">直接私訊 ${c.contact}</a>` : ''}
-        ${c.status!=='已讀' ? `<button class="btn-read" onclick="markRead('contacts','${c.id}')">標為已讀</button>` : ''}
+        ${c.contact&&c.contact.startsWith('@')?`<a class="btn-ig" href="https://www.instagram.com/${encodeURIComponent(c.contact.replace('@','').trim())}/" target="_blank">私訊 ${esc(c.contact)}</a>`:''}
+        ${c.status!=='已讀'?`<button class="btn-read" onclick="markRead('contacts','${c.id}')">標為已讀</button>`:''}
         <button class="btn-del" onclick="deleteMsg('contacts','${c.id}')">刪除</button>
       </div>
-    </div>`).join('') + '</div>';
+    </div>`).join('')+'</div>';
 }
 
-async function markRead(col, id){
-  await window.FSfns.updateDoc(window.FSfns.doc(window.DB, col, id), {status:'已讀'});
-  toast('已標為已讀');
+async function markRead(col,id){
+  try{ await db.collection(col).doc(id).update({status:'已讀'}); toast('已標為已讀'); }
+  catch(e){ toast('⚠️ 操作失敗'); }
 }
-async function deleteMsg(col, id){
+async function deleteMsg(col,id){
   if(!confirm('確定刪除？')) return;
-  await window.FSfns.deleteDoc(window.FSfns.doc(window.DB, col, id));
-  toast('已刪除');
+  try{ await db.collection(col).doc(id).delete(); toast('已刪除'); }
+  catch(e){ toast('⚠️ 刪除失敗'); }
 }
 
-// ── BANNER ──
+// ══════════ 廣告橫幅 ══════════
 async function loadBanner(){
-  if(!window.FSfns || !window.DB) return;
   try{
-    const snap = await window.FSfns.getDoc(window.FSfns.doc(window.DB,'settings','hero'));
-    if(snap.exists()){
-      const d = snap.data();
+    const snap=await db.collection('settings').doc('hero').get();
+    if(snap.exists){
+      const d=snap.data();
       if(d.imageUrl){
-        document.getElementById('bannerCurrent').src = d.imageUrl;
-        document.getElementById('bannerCurrent').style.display = 'block';
-        document.getElementById('bannerEmpty').style.display = 'none';
+        document.getElementById('bannerCurrent').src=d.imageUrl;
+        document.getElementById('bannerCurrent').style.display='block';
+        document.getElementById('bannerEmpty').style.display='none';
       }
-      if(d.title) document.getElementById('bannerTitle').value = d.title;
-      if(d.subtitle) document.getElementById('bannerSubtitle').value = d.subtitle;
+      if(d.title) document.getElementById('bannerTitle').value=d.title;
+      if(d.subtitle) document.getElementById('bannerSubtitle').value=d.subtitle;
     }
-  } catch(e){ console.error(e); }
+  } catch(e){ console.error('loadBanner:',e); }
 }
 
 async function saveBanner(){
-  const btn = document.getElementById('bannerSaveBtn');
-  btn.disabled = true; btn.textContent = '儲存中…';
+  const btn=document.getElementById('bannerSaveBtn');
+  btn.disabled=true; btn.textContent='儲存中…';
   try{
-    const fns = window.FSfns;
-    let imageUrl = document.getElementById('bannerCurrent').src || '';
-    const file = document.getElementById('bannerFile').files[0];
-    if(file) imageUrl = await uploadImage(file, `banner/hero_${Date.now()}_${file.name}`);
-    await fns.setDoc(fns.doc(window.DB,'settings','hero'), {
+    const cur=document.getElementById('bannerCurrent');
+    let imageUrl=(cur.style.display!=='none'&&cur.src&&cur.src.startsWith('http'))?cur.src:'';
+    const file=document.getElementById('bannerFile').files[0];
+    if(file){
+      btn.textContent='上傳照片中…';
+      imageUrl=await uploadImage(file,`banner/hero_${Date.now()}_${file.name}`);
+    }
+    await db.collection('settings').doc('hero').set({
       imageUrl,
-      title: document.getElementById('bannerTitle').value.trim(),
-      subtitle: document.getElementById('bannerSubtitle').value.trim(),
-      updatedAt: fns.serverTimestamp()
+      title:document.getElementById('bannerTitle').value.trim(),
+      subtitle:document.getElementById('bannerSubtitle').value.trim(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     });
     if(imageUrl){
-      document.getElementById('bannerCurrent').src = imageUrl;
-      document.getElementById('bannerCurrent').style.display = 'block';
-      document.getElementById('bannerEmpty').style.display = 'none';
+      cur.src=imageUrl; cur.style.display='block';
+      document.getElementById('bannerEmpty').style.display='none';
+      document.getElementById('bannerPreview').style.display='none';
+      document.getElementById('bannerHint').style.display='none';
     }
     toast('✅ 廣告照片已更新！官網將即時顯示');
-  } catch(e){ console.error(e); toast('⚠️ 儲存失敗：'+e.message); }
-  btn.disabled = false; btn.textContent = '儲存廣告設定';
-}
-
-// ── Utils ──
-function fmtTime(ts){
-  if(!ts) return '—';
-  if(ts.toDate) return ts.toDate().toLocaleString('zh-TW');
-  if(ts.seconds) return new Date(ts.seconds*1000).toLocaleString('zh-TW');
-  return String(ts);
+  } catch(e){ console.error('saveBanner:',e); toast('⚠️ 儲存失敗：'+e.message); }
+  btn.disabled=false; btn.textContent='儲存廣告設定';
 }
 </script>
 </body>
