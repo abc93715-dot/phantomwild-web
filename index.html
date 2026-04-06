@@ -6,45 +6,22 @@
 <title>Phantom Wild — 幻野爬蟲專賣</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  // ★ 請將下面換成你自己的 Firebase 設定（從 Firebase Console 複製）
-  const firebaseConfig = {
-  apiKey: "AIzaSyDnUAP9JsVidvnJ3BZNwmtDWi9sm7j31iw",
-  authDomain: "pwweb-d2c64.firebaseapp.com",
-  projectId: "pwweb-d2c64",
-  storageBucket: "pwweb-d2c64.firebasestorage.app",
-  messagingSenderId: "950190636899",
-  appId: "1:950190636899:web:56ee9f6aaa81da49c05d56",
-  measurementId: "G-Z2H591MXFT"
-};
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.DB = db;
-  // Load hero banner
-  (async ()=>{
-    try{
-      const heroSnap = await getDoc(doc(db,'settings','hero'));
-      if(heroSnap.exists()){
-        const hd = heroSnap.data();
-        if(hd.imageUrl){
-          const heroBg = document.querySelector('.hero-bg');
-          if(heroBg) heroBg.style.cssText += `;background-image:url('${hd.imageUrl}'),radial-gradient(ellipse 60% 70% at 50% 55%,rgba(0,0,0,.55),rgba(0,0,0,.3)),linear-gradient(165deg,#141208,#0e0c08 45%,#100e06);background-size:cover,auto,auto;background-position:center,center,center`;
-        }
-      }
-    }catch(e){}
-  })();
-  onSnapshot(query(collection(db,'pets'), orderBy('createdAt','desc')), snap => {
-    window.PETS_DB = snap.docs.map(d=>({id:d.id,...d.data()}));
-    window.renderPets(window._currentFilter||'all');
-  });
-  onSnapshot(query(collection(db,'supplies'), orderBy('createdAt','desc')), snap => {
-    window.SUPPLIES_DB = snap.docs.map(d=>({id:d.id,...d.data()}));
-    window.renderSupplies();
-  });
 
+<!-- Firebase Compat SDK（全域可用，無 module 作用域問題） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyDnUAP9JsVidvnJ3BZNwmtDWi9sm7j31iw",
+    authDomain: "pwweb-d2c64.firebaseapp.com",
+    projectId: "pwweb-d2c64",
+    storageBucket: "pwweb-d2c64.firebasestorage.app",
+    messagingSenderId: "950190636899",
+    appId: "1:950190636899:web:56ee9f6aaa81da49c05d56"
+  });
+  const db = firebase.firestore();
 </script>
+
 <style>
 :root {
   --black:#0e0c08; --deep:#141208; --card:#1a1710;
@@ -77,7 +54,7 @@ nav.sc{background:rgba(14,12,8,.96);backdrop-filter:blur(14px);padding:16px 56px
 
 /* HERO */
 .hero{min-height:100vh;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 55%,rgba(138,115,85,.08),transparent 65%),linear-gradient(165deg,#141208,#0e0c08 45%,#100e06)}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 55%,rgba(138,115,85,.08),transparent 65%),linear-gradient(165deg,#141208,#0e0c08 45%,#100e06);background-size:cover,auto;background-position:center,center;background-repeat:no-repeat,no-repeat}
 .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(138,115,85,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(138,115,85,.025) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(ellipse 65% 65% at 50% 50%,black,transparent)}
 .hero-ring{position:absolute;width:680px;height:680px;border:1px solid rgba(138,115,85,.07);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);animation:spin 90s linear infinite}
 .hero-ring::before{content:'';position:absolute;inset:55px;border:1px solid rgba(138,115,85,.04);border-radius:50%}
@@ -291,9 +268,10 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
   <a href="https://www.instagram.com/phantom_wild/" target="_blank" class="nav-ig">IG @phantom_wild</a>
 </nav>
 
-<!-- HERO -->
 <section class="hero" id="home">
-  <div class="hero-bg"></div><div class="hero-grid"></div><div class="hero-ring"></div>
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-ring"></div>
   <div class="hero-content">
     <img src="IMG_1478.png" alt="Phantom Wild Logo" class="hero-logo">
     <div class="hero-eye">台灣頂級爬蟲專賣</div>
@@ -307,7 +285,6 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
   <div class="scroll-hint"><span>向下探索</span><div class="s-line"></div></div>
 </section>
 
-<!-- CATEGORIES -->
 <section class="cats" id="cats">
   <div class="sh"><div class="sl">我們的品項</div><h2 class="st">探索<em>幻野世界</em></h2></div>
   <div class="cat-grid">
@@ -318,7 +295,6 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
   </div>
 </section>
 
-<!-- PETS -->
 <section class="pets" id="pets">
   <div class="sh"><div class="sl">現貨寵物</div><h2 class="st">尋找你的<em>幻野夥伴</em></h2></div>
   <div class="fb">
@@ -327,16 +303,14 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
     <button class="fb-btn" onclick="filterPets('snake',this)">蛇類</button>
     <button class="fb-btn" onclick="filterPets('frog',this)">青蛙 · 兩棲</button>
   </div>
-  <div class="pg" id="petsGrid"><div class="lm">載入中…</div></div>
+  <div class="pg" id="petsGrid"><div class="lm">連線中…</div></div>
 </section>
 
-<!-- SUPPLIES -->
 <section class="supp" id="supp">
   <div class="sh"><div class="sl">專業用品</div><h2 class="st">頂級<em>飼育裝備</em></h2></div>
-  <div class="sg" id="suppGrid"><div class="lm" style="grid-column:1/-1">載入中…</div></div>
+  <div class="sg" id="suppGrid"><div class="lm" style="grid-column:1/-1">連線中…</div></div>
 </section>
 
-<!-- ABOUT -->
 <section class="about" id="about">
   <div class="ab-in">
     <div class="ab-vis"><div class="ab-frame">🦎</div><div class="ab-acc"></div></div>
@@ -356,7 +330,6 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
   </div>
 </section>
 
-<!-- CONTACT -->
 <section class="contact" id="contact">
   <div class="ct-in">
     <div class="sh"><div class="sl">聯絡我們</div><h2 class="st">有任何<em>問題都歡迎</em></h2></div>
@@ -369,9 +342,9 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
       </div>
       <div>
         <form onsubmit="submitContact(event)" id="ctForm">
-          <div class="fg"><label>您的名稱</label><input type="text" placeholder="請輸入姓名" required></div>
-          <div class="fg"><label>聯絡方式</label><input type="text" placeholder="IG 帳號 / 手機號碼" required></div>
-          <div class="fg"><label>詢問內容</label><textarea placeholder="請描述您想詢問的內容..." required></textarea></div>
+          <div class="fg"><label>您的名稱</label><input type="text" id="ctName" placeholder="請輸入姓名" required></div>
+          <div class="fg"><label>聯絡方式</label><input type="text" id="ctContact" placeholder="IG 帳號 / 手機號碼" required></div>
+          <div class="fg"><label>詢問內容</label><textarea id="ctMsg" placeholder="請描述您想詢問的內容..." required></textarea></div>
           <button type="submit" class="sub-btn">送出詢問</button>
         </form>
       </div>
@@ -385,19 +358,20 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
   <a href="https://www.instagram.com/phantom_wild/" target="_blank" class="f-ig">@phantom_wild</a>
 </footer>
 
-<!-- PET MODAL -->
+<!-- PET INQUIRY MODAL -->
 <div class="mo" id="petMo" onclick="closePetMo(event)">
   <div class="m-box" id="petMoBox">
     <button class="m-cl" onclick="closePetMo()">✕</button>
     <div class="m-lbl">寵物詢價</div>
     <h3 class="m-ttl" id="moName">—</h3>
     <form onsubmit="submitPet(event)">
-      <div class="fg"><label>您的姓名</label><input type="text" placeholder="請輸入姓名" required></div>
-      <div class="fg"><label>IG 帳號 / 聯絡方式</label><input type="text" placeholder="@您的IG 或 手機號碼" required></div>
+      <input type="hidden" id="moHiddenPet">
+      <div class="fg"><label>您的姓名</label><input type="text" id="moUserName" placeholder="請輸入姓名" required></div>
+      <div class="fg"><label>IG 帳號 / 聯絡方式</label><input type="text" id="moContact" placeholder="@您的IG 或 手機號碼" required></div>
       <div class="fg"><label>想了解的資訊</label>
-        <select><option>詢問個體狀況</option><option>詢問價格</option><option>預約看個體</option><option>其他</option></select>
+        <select id="moType"><option>詢問個體狀況</option><option>詢問價格</option><option>預約看個體</option><option>其他</option></select>
       </div>
-      <div class="fg"><label>補充說明（選填）</label><textarea placeholder="有任何問題都可以在這裡說明..."></textarea></div>
+      <div class="fg"><label>補充說明（選填）</label><textarea id="moNote" placeholder="有任何問題都可以在這裡說明..."></textarea></div>
       <p class="f-note">送出後我們會在 24 小時內透過 IG 與您聯絡 🐍</p>
       <button type="submit" class="sub-btn">送出詢問</button>
     </form>
@@ -437,166 +411,215 @@ footer{background:var(--black);border-top:1px solid var(--border);padding:50px 5
 </div>
 
 <script>
-// Pet detail
-function openPetDetail(id){
-  const p = (window.PETS_DB||[]).find(x=>x.id===id);
-  if(!p) return;
-  document.getElementById('petDetailContent').innerHTML = `
-    <div class="m-lbl">${p.species||''}</div>
-    <h3 class="m-ttl">${p.name}</h3>
-    ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:100%;max-height:300px;object-fit:cover;border:1px solid var(--border);margin-bottom:20px">` : `<div style="font-size:5rem;text-align:center;padding:20px;filter:saturate(.5) brightness(.6)">${p.emoji||'🦎'}</div>`}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
-      ${(p.tags||[]).map(t=>`<span class="p-tag">${t}</span>`).join('')}
-      ${p.badge ? `<span class="pb-badge" style="position:static">${p.badge}</span>` : ''}
-    </div>
-    ${p.note ? `<div style="font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--text);line-height:1.8;margin-bottom:20px;padding:14px;border-left:2px solid var(--warm-dim)">${p.note}</div>` : ''}
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border)">
-      <div class="p-pr" style="font-size:1.4rem"><span class="cur">NT$</span>${Number(p.price).toLocaleString()}</div>
-      <button class="p-btn" style="padding:12px 24px;font-size:.82rem" onclick="openPetMo('${p.name.replace(/'/g,"\'")}','${(p.species||'').replace(/'/g,"\'")}')">詢問個體</button>
-    </div>
-  `;
-  document.getElementById('petDetailMo').classList.add('open');
-}
-function closePetDetail(e){
-  if(!e||e.target===document.getElementById('petDetailMo'))
-    document.getElementById('petDetailMo').classList.remove('open');
-}
+// ─── 資料 ───
+let PETS_DB = [], SUPPLIES_DB = [];
+let _currentFilter = 'all';
 
-// Cursor
-const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
-(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar)})();
-function h(el){el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'))}
-document.querySelectorAll('a,button,.cc,.fb-btn').forEach(h);
+// ─── Firebase 監聽 ───
+// Hero 廣告照片
+db.collection('settings').doc('hero').get().then(snap => {
+  if(snap.exists){
+    const d = snap.data();
+    if(d.imageUrl){
+      const bg = document.getElementById('heroBg');
+      bg.style.backgroundImage = `url('${d.imageUrl}'), radial-gradient(ellipse 60% 70% at 50% 55%, rgba(0,0,0,.55), rgba(0,0,0,.3)), linear-gradient(165deg,#141208,#0e0c08 45%,#100e06)`;
+      bg.style.backgroundSize = 'cover, auto, auto';
+      bg.style.backgroundPosition = 'center, center, center';
+    }
+  }
+}).catch(()=>{});
 
-// Nav
-window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('sc',scrollY>60));
+// 寵物即時監聽
+db.collection('pets').orderBy('createdAt','desc').onSnapshot(snap => {
+  PETS_DB = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  renderPets(_currentFilter);
+});
 
-// Fallback data
-window.PETS_DB=[
-  {id:'p1',name:'Lemon Frost',species:'豹紋守宮',cat:'gecko',emoji:'🦎',price:3800,tags:['CB個體','雌性','已開食'],badge:'精選',imageUrl:''},
-  {id:'p2',name:'Super Snow',species:'豹紋守宮',cat:'gecko',emoji:'🦎',price:4500,tags:['CB個體','雄性'],badge:'推薦',imageUrl:''},
-  {id:'p3',name:'Albino Corn',species:'玉米蛇',cat:'snake',emoji:'🐍',price:3200,tags:['CB個體','雄性','已開食'],badge:'精選',imageUrl:''},
-  {id:'p4',name:'Blue Eyed Lucy',species:'球蟒',cat:'snake',emoji:'🐍',price:12000,tags:['CB個體','雌性'],badge:'稀有',imageUrl:''},
-  {id:'p5',name:'ANBW',species:'亞馬遜牛奶蛙',cat:'frog',emoji:'🐸',price:1800,tags:['CB個體'],badge:'推薦',imageUrl:''},
-];
-window.SUPPLIES_DB=[
-  {id:'s1',name:'UVB 5.0 爬蟲燈管',cat:'照明',icon:'💡',desc:'適合守宮、蜥蜴，促進維他命D3合成',price:680},
-  {id:'s2',name:'椰土底材 10L',cat:'底材',icon:'🌿',desc:'天然椰土，適合兩棲與濕地型爬蟲',price:280},
-  {id:'s3',name:'Repashy 昆蟲膏',cat:'飼料',icon:'🥣',desc:'豹紋守宮專用果泥，完整營養配方',price:380},
-  {id:'s4',name:'爬蟲控溫加熱墊',cat:'溫控',icon:'🌡️',desc:'恆溫控制，安全可靠',price:520},
-  {id:'s5',name:'Arcadia Calcium D3',cat:'營養品',icon:'💊',desc:'含D3鈣粉，預防代謝性骨病',price:320},
-  {id:'s6',name:'玻璃爬蟲缸 30x30x45',cat:'飼育箱',icon:'🏠',desc:'前開式玻璃缸，適合守宮及樹棲個體',price:1980},
-];
-window._currentFilter='all';
+// 用品即時監聽
+db.collection('supplies').orderBy('createdAt','desc').onSnapshot(snap => {
+  SUPPLIES_DB = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  renderSupplies();
+});
 
-// Render Pets
-window.renderPets=function(f){
-  window._currentFilter=f;
-  const g=document.getElementById('petsGrid');
-  const d=f==='all'?window.PETS_DB:window.PETS_DB.filter(p=>p.cat===f);
-  if(!d||!d.length){g.innerHTML='<div class="lm">目前沒有此分類的個體，敬請期待！</div>';return}
-  g.innerHTML=d.map(p=>`
+// ─── 渲染寵物 ───
+function renderPets(f){
+  _currentFilter = f;
+  const g = document.getElementById('petsGrid');
+  const d = f === 'all' ? PETS_DB : PETS_DB.filter(p => p.cat === f);
+  if(!d.length){
+    g.innerHTML = '<div class="lm">目前沒有此分類的個體，敬請期待！</div>';
+    return;
+  }
+  g.innerHTML = d.map(p => `
     <div class="pc" onclick="openPetDetail('${p.id}')">
       <div class="pi">
-        ${p.imageUrl?`<img src="${p.imageUrl}" alt="${p.name}" loading="lazy">`:`<div class="pe">${p.emoji||'🦎'}</div>`}
-        ${p.badge?`<div class="pb-badge">${p.badge}</div>`:''}
+        ${p.imageUrl
+          ? `<img src="${p.imageUrl}" alt="${escHtml(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+          : ''}
+        <div class="pe" ${p.imageUrl ? 'style="display:none"' : ''}>${p.emoji || '🦎'}</div>
+        ${p.badge ? `<div class="pb-badge">${escHtml(p.badge)}</div>` : ''}
       </div>
       <div class="pb">
-        <div class="p-sp">${p.species||''}</div>
-        <div class="p-nm">${p.name}</div>
-        <div class="p-tags">${(p.tags||[]).map(t=>`<span class="p-tag">${t}</span>`).join('')}</div>
+        <div class="p-sp">${escHtml(p.species || '')}</div>
+        <div class="p-nm">${escHtml(p.name)}</div>
+        <div class="p-tags">${(p.tags || []).map(t => `<span class="p-tag">${escHtml(t)}</span>`).join('')}</div>
         <div class="p-foot">
-          <div class="p-pr"><span class="cur">NT$</span>${Number(p.price).toLocaleString()}</div>
-          <button class="p-btn" onclick="event.stopPropagation();openPetMo('${p.name.replace(/'/g,"\'")}','${(p.species||'').replace(/'/g,"\'")}')">詢問個體</button>
+          <div class="p-pr"><span class="cur">NT$</span>${Number(p.price || 0).toLocaleString()}</div>
+          <button class="p-btn" onclick="event.stopPropagation();openPetMo('${escAttr(p.name)}','${escAttr(p.species||'')}')">詢問個體</button>
         </div>
       </div>
     </div>`).join('');
-  document.querySelectorAll('.pc,.p-btn').forEach(h);
+  document.querySelectorAll('.pc,.p-btn').forEach(hov);
 }
 
-// Render Supplies
-window.renderSupplies=function(){
-  const g=document.getElementById('suppGrid');
-  const d=window.SUPPLIES_DB;
-  if(!d||!d.length){g.innerHTML='<div class="lm" style="grid-column:1/-1">目前沒有用品資料</div>';return}
-  g.innerHTML=d.map(s=>`
+// ─── 渲染用品 ───
+function renderSupplies(){
+  const g = document.getElementById('suppGrid');
+  if(!SUPPLIES_DB.length){
+    g.innerHTML = '<div class="lm" style="grid-column:1/-1">目前沒有用品資料</div>';
+    return;
+  }
+  g.innerHTML = SUPPLIES_DB.map(s => `
     <div class="sc-card">
-      <div class="s-ic">${s.icon||'📦'}</div>
-      <div class="s-cat">${s.cat||''}</div>
-      <div class="s-nm">${s.name}</div>
-      <div class="s-desc">${s.desc||''}</div>
+      <div class="s-ic">${s.icon || '📦'}</div>
+      <div class="s-cat">${escHtml(s.cat || '')}</div>
+      <div class="s-nm">${escHtml(s.name)}</div>
+      <div class="s-desc">${escHtml(s.desc || '')}</div>
       <div class="s-foot">
-        <div class="s-pr">NT$ ${Number(s.price).toLocaleString()}</div>
+        <div class="s-pr">NT$ ${Number(s.price || 0).toLocaleString()}</div>
         <button class="cb-btn" onclick="addToCart('${s.id}')">加入購物車</button>
       </div>
     </div>`).join('');
-  document.querySelectorAll('.sc-card,.cb-btn').forEach(h);
+  document.querySelectorAll('.sc-card,.cb-btn').forEach(hov);
 }
 
-// Filter
-window.filterPets=function(f,btn){
-  document.querySelectorAll('.fb-btn').forEach(b=>b.classList.remove('a'));
-  if(btn)btn.classList.add('a');
+// ─── 篩選 ───
+function filterPets(f, btn){
+  document.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('a'));
+  if(btn) btn.classList.add('a');
   renderPets(f);
 }
 
-// Cart
-let cart=[];
-window.addToCart=function(id){
-  const item=window.SUPPLIES_DB.find(s=>s.id===id);if(!item)return;
-  const ex=cart.find(c=>c.id===id);
-  if(ex)ex.qty++;else cart.push({...item,qty:1});
-  updateCart();openCart();
+// ─── Pet Detail ───
+function openPetDetail(id){
+  const p = PETS_DB.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById('petDetailContent').innerHTML = `
+    <div class="m-lbl">${escHtml(p.species || '')}</div>
+    <h3 class="m-ttl">${escHtml(p.name)}</h3>
+    ${p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="${escHtml(p.name)}" style="width:100%;max-height:300px;object-fit:cover;border:1px solid var(--border);margin-bottom:20px" onerror="this.style.display='none'">`
+      : `<div style="font-size:5rem;text-align:center;padding:20px;filter:saturate(.5) brightness(.6)">${p.emoji || '🦎'}</div>`}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      ${(p.tags || []).map(t => `<span class="p-tag">${escHtml(t)}</span>`).join('')}
+      ${p.badge ? `<span class="pb-badge" style="position:static">${escHtml(p.badge)}</span>` : ''}
+    </div>
+    ${p.note ? `<div style="font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--text);line-height:1.8;margin-bottom:20px;padding:14px;border-left:2px solid var(--warm-dim)">${escHtml(p.note)}</div>` : ''}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--border)">
+      <div class="p-pr" style="font-size:1.4rem"><span class="cur">NT$</span>${Number(p.price || 0).toLocaleString()}</div>
+      <button class="p-btn" style="padding:12px 24px;font-size:.82rem" onclick="openPetMo('${escAttr(p.name)}','${escAttr(p.species||'')}')">詢問個體</button>
+    </div>`;
+  document.getElementById('petDetailMo').classList.add('open');
 }
-function removeFromCart(id){cart=cart.filter(c=>c.id!==id);updateCart()}
+function closePetDetail(e){
+  if(!e || e.target === document.getElementById('petDetailMo'))
+    document.getElementById('petDetailMo').classList.remove('open');
+}
+
+// ─── Pet Modal ───
+function openPetMo(name, sp){
+  document.getElementById('moName').textContent = name + (sp ? ' — ' + sp : '');
+  document.getElementById('moHiddenPet').value = name;
+  document.getElementById('petMo').classList.add('open');
+}
+function closePetMo(e){
+  if(!e || e.target === document.getElementById('petMo'))
+    document.getElementById('petMo').classList.remove('open');
+}
+async function submitPet(e){
+  e.preventDefault();
+  try{
+    await db.collection('inquiries').add({
+      petName: document.getElementById('moHiddenPet').value,
+      name: document.getElementById('moUserName').value,
+      contact: document.getElementById('moContact').value,
+      type: document.getElementById('moType').value,
+      note: document.getElementById('moNote').value,
+      status: '未讀',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(err){ console.error('submitPet:', err); }
+  document.getElementById('petMoBox').innerHTML = `<div class="suc"><div class="ck">✅</div><h4>詢問已送出！</h4><p>我們會在 24 小時內透過 IG 與您聯絡<br><br><a href="https://www.instagram.com/phantom_wild/" target="_blank" style="color:var(--warm)">@phantom_wild</a></p></div>`;
+  setTimeout(() => document.getElementById('petMo').classList.remove('open'), 3500);
+}
+
+// ─── Contact Form ───
+async function submitContact(e){
+  e.preventDefault();
+  try{
+    await db.collection('contacts').add({
+      name: document.getElementById('ctName').value,
+      contact: document.getElementById('ctContact').value,
+      message: document.getElementById('ctMsg').value,
+      status: '未讀',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(err){ console.error('submitContact:', err); }
+  document.getElementById('ctForm').innerHTML = `<div class="suc"><div class="ck">✅</div><h4>訊息已送出！</h4><p>感謝您的詢問，我們會盡快回覆！</p></div>`;
+}
+
+// ─── Cart ───
+let cart = [];
+function addToCart(id){
+  const item = SUPPLIES_DB.find(s => s.id === id);
+  if(!item) return;
+  const ex = cart.find(c => c.id === id);
+  if(ex) ex.qty++; else cart.push({...item, qty:1});
+  updateCart(); openCart();
+}
+function removeFromCart(id){ cart = cart.filter(c => c.id !== id); updateCart(); }
 function updateCart(){
-  const count=cart.reduce((a,c)=>a+c.qty,0);
-  const total=cart.reduce((a,c)=>a+c.price*c.qty,0);
-  document.getElementById('cCount').textContent=count;
-  document.getElementById('cTot').textContent=`NT$ ${total.toLocaleString()}`;
-  const el=document.getElementById('cIts');
-  if(!cart.length){el.innerHTML='<div class="c-emp">購物車是空的</div>';return}
-  el.innerHTML=cart.map(c=>`
+  const count = cart.reduce((a,c) => a + c.qty, 0);
+  const total = cart.reduce((a,c) => a + c.price * c.qty, 0);
+  document.getElementById('cCount').textContent = count;
+  document.getElementById('cTot').textContent = `NT$ ${total.toLocaleString()}`;
+  const el = document.getElementById('cIts');
+  if(!cart.length){ el.innerHTML = '<div class="c-emp">購物車是空的</div>'; return; }
+  el.innerHTML = cart.map(c => `
     <div class="c-it">
-      <div class="c-it-ic">${c.icon||'📦'}</div>
+      <div class="c-it-ic">${c.icon || '📦'}</div>
       <div class="c-it-inf">
-        <div class="c-it-nm">${c.name} ×${c.qty}</div>
-        <div class="c-it-pr">NT$ ${(c.price*c.qty).toLocaleString()}</div>
+        <div class="c-it-nm">${escHtml(c.name)} ×${c.qty}</div>
+        <div class="c-it-pr">NT$ ${(c.price * c.qty).toLocaleString()}</div>
       </div>
       <button class="c-it-rm" onclick="removeFromCart('${c.id}')">✕</button>
     </div>`).join('');
 }
-function openCart(){document.getElementById('cOv').classList.add('open');document.getElementById('cSb').classList.add('open')}
-function closeCart(){document.getElementById('cOv').classList.remove('open');document.getElementById('cSb').classList.remove('open')}
+function openCart(){ document.getElementById('cOv').classList.add('open'); document.getElementById('cSb').classList.add('open'); }
+function closeCart(){ document.getElementById('cOv').classList.remove('open'); document.getElementById('cSb').classList.remove('open'); }
 function openCheckout(){
   closeCart();
-  const total=cart.reduce((a,c)=>a+c.price*c.qty,0);
-  document.getElementById('ckTot').textContent=`NT$ ${total.toLocaleString()}`;
-  document.getElementById('ckPrev').innerHTML=cart.map(c=>`<div class="ck-row"><span>${c.name} ×${c.qty}</span><span>NT$ ${(c.price*c.qty).toLocaleString()}</span></div>`).join('');
+  const total = cart.reduce((a,c) => a + c.price * c.qty, 0);
+  document.getElementById('ckTot').textContent = `NT$ ${total.toLocaleString()}`;
+  document.getElementById('ckPrev').innerHTML = cart.map(c => `<div class="ck-row"><span>${escHtml(c.name)} ×${c.qty}</span><span>NT$ ${(c.price * c.qty).toLocaleString()}</span></div>`).join('');
   document.getElementById('ckMo').classList.add('open');
 }
-function closeCkMo(e){if(!e||e.target===document.getElementById('ckMo'))document.getElementById('ckMo').classList.remove('open')}
+function closeCkMo(e){ if(!e || e.target === document.getElementById('ckMo')) document.getElementById('ckMo').classList.remove('open'); }
 
-// Pet Modal
-function openPetMo(name,sp){
-  document.getElementById('moName').textContent=name+(sp?' — '+sp:'');
-  document.getElementById('petMo').classList.add('open');
-}
-function closePetMo(e){if(!e||e.target===document.getElementById('petMo'))document.getElementById('petMo').classList.remove('open')}
-function submitPet(e){
-  e.preventDefault();
-  document.getElementById('petMoBox').innerHTML=`<div class="suc"><div class="ck">✅</div><h4>詢問已送出！</h4><p>我們會在 24 小時內透過 IG 與您聯絡<br><br><a href="https://www.instagram.com/phantom_wild/" target="_blank" style="color:var(--warm)">@phantom_wild</a></p></div>`;
-  setTimeout(()=>document.getElementById('petMo').classList.remove('open'),3500);
-}
-function submitContact(e){
-  e.preventDefault();
-  document.getElementById('ctForm').innerHTML=`<div class="suc"><div class="ck">✅</div><h4>訊息已送出！</h4><p>感謝您的詢問，我們會盡快回覆！</p></div>`;
-}
+// ─── Cursor ───
+const curEl = document.getElementById('cursor'), ringEl = document.getElementById('cursor-ring');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; curEl.style.left=mx+'px'; curEl.style.top=my+'px'; });
+(function ar(){ rx+=(mx-rx)*.12; ry+=(my-ry)*.12; ringEl.style.left=rx+'px'; ringEl.style.top=ry+'px'; requestAnimationFrame(ar); })();
+function hov(el){ el.addEventListener('mouseenter',()=>document.body.classList.add('hov')); el.addEventListener('mouseleave',()=>document.body.classList.remove('hov')); }
+document.querySelectorAll('a,button,.cc,.fb-btn').forEach(hov);
 
-renderPets('all');
-renderSupplies();
+// ─── Nav scroll ───
+window.addEventListener('scroll', () => document.getElementById('nav').classList.toggle('sc', scrollY > 60));
+
+// ─── Utils ───
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s){ return String(s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
 </script>
 </body>
 </html>
